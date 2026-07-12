@@ -116,6 +116,11 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             return
         super().persist()
 
+    def _update_buttons(self) -> None:
+        super()._update_buttons()
+        self.client.ui_enable("HEALTH", True)
+        self.client.ui_enable("HEALTHEXPORT", True)
+
     def run_health_check(self, export: bool = False) -> RuntimeHealthReport:
         self.health_report = self.health_service.run(self.route_path)
         self.last_message = self.health_report.summary
