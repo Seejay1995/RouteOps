@@ -4,6 +4,8 @@ from typing import Any
 
 import RouteOps as legacy
 from kernel_contracts import KernelCommand, KernelCommandType, KernelResult
+from route_compiler import RouteCompiler
+from route_importer import ImportResult
 from route_kernel import RouteKernel
 
 
@@ -39,14 +41,28 @@ _UI_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
 
 
 class KernelRouteOpsApplication(legacy.RouteOpsApplication):
-    """EDDiscovery adapter that routes mutations through RouteKernel."""
+    """EDDiscovery adapter that routes compilation and mutations through M1/M2 boundaries."""
 
     def __init__(self, client: Any) -> None:
         super().__init__(client)
+        self.compiler = RouteCompiler()
         self.kernel: RouteKernel | None = None
 
+    def _compile_import_result(self, path: str) -> ImportResult:
+        compiled = self.compiler.compile_file(path)
+        return ImportResult(
+            route=compiled.route,
+            warnings=list(compiled.warnings),
+            errors=list(compiled.errors),
+        )
+
     def load_route(self, path: str, quiet: bool = False) -> None:
-        super().load_route(path, quiet=quiet)
+        original_import_route = legacy.import_route
+        legacy.import_route = self._compile_import_result
+        try:
+            super().load_route(path, quiet=quiet)
+        finally:
+            legacy.import_route = original_import_route
         self.kernel = RouteKernel(self.engine) if self.engine else None
 
     def _accept_kernel_result(self, result: KernelResult) -> None:
