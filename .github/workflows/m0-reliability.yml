@@ -15,6 +15,8 @@ permissions:
 jobs:
   validate:
     runs-on: windows-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
 
     steps:
       - name: Checkout
@@ -41,7 +43,15 @@ jobs:
       - name: Run Python tests
         if: always()
         shell: pwsh
-        run: python .\tools\run_tests.py
+        run: python .\tools\run_tests.py --output .\test-report.txt
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m0-test-report
+          path: test-report.txt
+          if-no-files-found: warn
 
       - name: Parse PowerShell files
         if: always()
