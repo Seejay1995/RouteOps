@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -32,6 +33,10 @@ def main() -> int:
         emit("No test modules found.")
         return 1
 
+    env = os.environ.copy()
+    current_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = str(root) if not current_pythonpath else str(root) + os.pathsep + current_pythonpath
+
     failed: list[str] = []
     for module in modules:
         emit()
@@ -39,6 +44,7 @@ def main() -> int:
         result = subprocess.run(
             [sys.executable, "-B", "-m", "unittest", module.stem, "-v"],
             cwd=tests,
+            env=env,
             text=True,
             capture_output=True,
         )
