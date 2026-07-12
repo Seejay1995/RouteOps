@@ -1,10 +1,13 @@
 [CmdletBinding()]
 param(
-    [string]$EddDataRoot
+    [string]$EddDataRoot,
+    [string]$EddInstallRoot,
+    [string]$EddExecutable
 )
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'edd-root.ps1')
+. (Join-Path $PSScriptRoot 'portable-root.ps1')
 
 $report = New-Object 'System.Collections.Generic.List[string]'
 function Add-Report {
@@ -17,7 +20,7 @@ Add-Report 'EDD RouteOps v0.5.0 installer'
 Add-Report ('Started: ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
 Add-Report ''
 
-$selection = Find-EddDataRoot -Requested $EddDataRoot
+$selection = Find-EddPortableDataRoot -Requested $EddDataRoot -InstallRoot $EddInstallRoot -Executable $EddExecutable
 $root = $selection.Path
 $actions = Join-Path $root 'Actions'
 $plugins = Join-Path $root 'Plugins\RouteOps'
@@ -29,19 +32,24 @@ if ($selection.Candidates.Count -gt 0) {
     Add-Report 'Detected EDDiscovery data-folder candidates:'
     foreach ($candidate in ($selection.Candidates |
         Sort-Object -Property @{ Expression = 'Priority'; Descending = $true }, @{ Expression = 'Score'; Descending = $true }, @{ Expression = 'Path'; Descending = $false })) {
-        Add-Report ("  Priority {0,4} / Score {1,3}: {2} [{3}]" -f $candidate.Priority, $candidate.Score, $candidate.Path, $candidate.Reason)
+        Add-Report ("  Priority {0,5} / Score {1,3}: {2} [{3}]" -f $candidate.Priority, $candidate.Score, $candidate.Path, $candidate.Reason)
     }
     Add-Report ''
 }
 
+if ($selection.PSObject.Properties['Portable'] -and $selection.Portable) {
+    Add-Report ("Portable install root: {0}" -f $selection.InstallRoot)
+    Add-Report ("Portable executable: {0}" -f $selection.ExecutablePath)
+}
 Add-Report ("Selected ACTIVE data root: {0}" -f $root)
 Add-Report ("Selection reason: {0}; priority {1}; score {2}" -f $selection.Reason, $selection.Priority, $selection.Score)
 
 if (-not (Test-Path (Join-Path $root 'EDDUser.sqlite')) -and
     -not (Test-Path (Join-Path $root 'EDDSystem.sqlite'))) {
     Add-Report 'WARNING: No EDDUser.sqlite or EDDSystem.sqlite was found in the selected folder.'
-    Add-Report 'Rerun with an explicit root if this is incorrect:'
-    Add-Report '  powershell -ExecutionPolicy Bypass -File .\install.ps1 -EddDataRoot "D:\Your\EDDiscoveryData"'
+    Add-Report 'Rerun with an explicit portable install or data root if this is incorrect:'
+    Add-Report '  powershell -ExecutionPolicy Bypass -File .\install.ps1 -EddInstallRoot "E:\Your\EDDiscovery"'
+    Add-Report '  powershell -ExecutionPolicy Bypass -File .\install.ps1 -EddDataRoot "E:\Your\EDDiscoveryData"'
 }
 
 $running = @(Get-EddRunningProcesses)
@@ -93,6 +101,13 @@ $required = @(
     (Join-Path $plugins 'route_metrics.py'),
     (Join-Path $plugins 'clipboard_service.py'),
     (Join-Path $plugins 'state_store.py'),
+    (Join-Path $plugins 'session_storage.py'),
+    (Join-Path $plugins 'route_session.py'),
+    (Join-Path $plugins 'kernel_contracts.py'),
+    (Join-Path $plugins 'route_kernel.py'),
+    (Join-Path $plugins 'route_compiler.py'),
+    (Join-Path $plugins 'source_providers.py'),
+    (Join-Path $plugins 'routeops_kernel_app.py'),
     (Join-Path $plugins 'ui_renderer.py'),
     (Join-Path $plugins 'checkmodules.py'),
     (Join-Path $plugins 'UIInterface.act'),

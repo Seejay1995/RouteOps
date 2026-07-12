@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
 
 import RouteOps as legacy
@@ -10,7 +11,7 @@ from route_importer import ImportResult
 from route_kernel import RouteKernel
 from route_models import Route
 from route_session import RouteSession, RouteSessionDefinition
-from state_store import save_state
+from session_storage import FileSessionStorage, SessionStorage
 
 
 _UI_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
@@ -45,7 +46,7 @@ _UI_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
 
 
 class KernelRouteOpsApplication(legacy.RouteOpsApplication):
-    """EDDiscovery adapter using compiler, provider, session, and kernel boundaries."""
+    """EDDiscovery adapter using compiler, session, storage, and kernel boundaries."""
 
     def __init__(self, client: Any) -> None:
         super().__init__(client)
@@ -53,6 +54,11 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self.compiled_route: Route | None = None
         self.session: RouteSession | None = None
         self.kernel: RouteKernel | None = None
+        configured_root = client.config.get("session_state_root", "")
+        self.session_storage: SessionStorage = FileSessionStorage.for_plugin(
+            Path(__file__).resolve().parent,
+            configured_root,
+        )
 
     def _compile_import_result(self, source: str) -> ImportResult:
         compiled = self.compiler.compile_source(source)
@@ -68,11 +74,14 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self.session = None
         self.kernel = None
         original_import_route = legacy.import_route
+        original_load_state = legacy.load_state
         legacy.import_route = self._compile_import_result
+        legacy.load_state = lambda route_path, fallback_dir=None: self.session_storage.load(route_path)
         try:
             super().load_route(path, quiet=quiet)
         finally:
             legacy.import_route = original_import_route
+            legacy.load_state = original_load_state
         if self.engine and self.compiled_route:
             definition = RouteSessionDefinition.from_route(self.compiled_route)
             self.session = RouteSession(definition, self.engine)
@@ -82,7 +91,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
     def persist(self) -> None:
         if self.session and self.route_path:
             try:
-                save_state(self.route_path, self.session.snapshot(), self.state_folder)
+                self.session_storage.save(self.route_path, self.session.snapshot())
             except OSError as exc:
                 self.last_message = f"State save failed: {exc}"
             self.client.config["route_path"] = self.route_path
