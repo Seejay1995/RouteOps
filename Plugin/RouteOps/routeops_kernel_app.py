@@ -62,7 +62,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             configured_root,
         )
         self.health_service = RuntimeHealthService(plugin_directory, self.session_storage)
-        self.health_report: RuntimeHealthReport = self.health_service.run(self.route_path)
+        self.health_report: RuntimeHealthReport | None = None
 
     def start(self) -> None:
         self.health_report = self.health_service.run(self.route_path)
@@ -125,8 +125,8 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                 self.last_message = f"Runtime health exported: {destination}"
             except OSError as exc:
                 self.last_message = f"Runtime health export failed: {exc}"
-        self.client.ui_set_escape("DETAIL", self.health_report.render_text())
         self.refresh_ui()
+        self.client.ui_set_escape("DETAIL", self.health_report.render_text())
         return self.health_report
 
     def _accept_kernel_result(self, result: KernelResult) -> None:
