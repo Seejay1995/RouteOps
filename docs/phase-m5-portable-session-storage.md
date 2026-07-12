@@ -53,15 +53,21 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 `
 
 ## Exit criteria
 
-- [ ] Application state loading and saving use `SessionStorage`.
-- [ ] Default fallback state is plugin-local and portable-drive safe.
-- [ ] Relative and absolute state-root overrides are deterministic.
-- [ ] Installer accepts arbitrary portable install and executable paths.
-- [ ] `-appfolder` in portable options files has highest precedence.
-- [ ] Database evidence selects the correct conventional portable data folder.
-- [ ] Installer verifies all session, kernel, compiler, and provider modules.
-- [ ] Python, PowerShell, EDDiscovery, and clean-package gates pass.
-- [ ] Migration and rollback evidence is complete.
+- [x] Application state loading and saving use `SessionStorage`.
+- [x] Default fallback state is plugin-local and portable-drive safe.
+- [x] Relative and absolute state-root overrides are deterministic.
+- [x] Installer accepts arbitrary portable install and executable paths.
+- [x] `-appfolder` in portable options files has highest precedence.
+- [x] Database evidence selects the correct conventional portable data folder.
+- [x] Installer verifies all session, kernel, compiler, and provider modules.
+- [x] Python, PowerShell, EDDiscovery, and clean-package gates pass.
+- [x] Migration and rollback evidence is complete.
+
+## Validation evidence
+
+GitHub Actions workflow run #64 passed on Windows at commit `88a8f1925d678452c7130bd884a445abda74da4d`. The workflow completed Python compilation and tests, PowerShell parsing, EDDiscovery artifact validation, and clean-package validation successfully.
+
+Regression coverage includes plugin-local fallback storage, relative and absolute storage overrides, arbitrary portable install roots, executable-path installation, options-file `-appfolder` precedence, database-aware data-root selection, and package inclusion of all M1–M5 modules.
 
 ## Migration and rollback
 
