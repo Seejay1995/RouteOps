@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 import RouteOps as legacy
@@ -7,6 +8,9 @@ from kernel_contracts import KernelCommand, KernelCommandType, KernelResult
 from route_compiler import RouteCompiler
 from route_importer import ImportResult
 from route_kernel import RouteKernel
+from route_models import Route
+from route_session import RouteSession, RouteSessionDefinition
+from state_store import save_state
 
 
 _UI_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
@@ -41,29 +45,56 @@ _UI_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
 
 
 class KernelRouteOpsApplication(legacy.RouteOpsApplication):
-    """EDDiscovery adapter using compiler, provider, and kernel boundaries."""
+    """EDDiscovery adapter using compiler, provider, session, and kernel boundaries."""
 
     def __init__(self, client: Any) -> None:
         super().__init__(client)
         self.compiler = RouteCompiler()
+        self.compiled_route: Route | None = None
+        self.session: RouteSession | None = None
         self.kernel: RouteKernel | None = None
 
     def _compile_import_result(self, source: str) -> ImportResult:
         compiled = self.compiler.compile_source(source)
+        self.compiled_route = compiled.route
         return ImportResult(
-            route=compiled.route,
+            route=deepcopy(compiled.route) if compiled.route is not None else None,
             warnings=list(compiled.warnings),
             errors=list(compiled.errors),
         )
 
     def load_route(self, path: str, quiet: bool = False) -> None:
+        self.compiled_route = None
+        self.session = None
+        self.kernel = None
         original_import_route = legacy.import_route
         legacy.import_route = self._compile_import_result
         try:
             super().load_route(path, quiet=quiet)
         finally:
             legacy.import_route = original_import_route
-        self.kernel = RouteKernel(self.engine) if self.engine else None
+        if self.engine and self.compiled_route:
+            definition = RouteSessionDefinition.from_route(self.compiled_route)
+            self.session = RouteSession(definition, self.engine)
+            self.kernel = RouteKernel(self.session)
+            self.persist()
+
+    def persist(self) -> None:
+        if self.session and self.route_path:
+            try:
+                save_state(self.route_path, self.session.snapshot(), self.state_folder)
+            except OSError as exc:
+                self.last_message = f"State save failed: {exc}"
+            self.client.config["route_path"] = self.route_path
+            engine = self.session.engine
+            self.client.config["exobio_excluded_genera"] = list(engine.route.settings.excluded_organism_genera)
+            self.client.config["exobio_show_excluded"] = engine.route.settings.show_excluded_organisms
+            self.client.config["exobio_route_view"] = engine.route.settings.route_view_mode
+            self.client.config["navigation_guidance"] = engine.guidance_mode
+            self.client.config["body_order_mode"] = engine.body_order_mode
+            self.client.config["default_skip_reason"] = engine.route.settings.default_skip_reason
+            return
+        super().persist()
 
     def _accept_kernel_result(self, result: KernelResult) -> None:
         if not result.success:
