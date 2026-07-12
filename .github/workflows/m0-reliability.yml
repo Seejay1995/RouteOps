@@ -9,6 +9,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: windows-latest
@@ -25,4 +28,37 @@ jobs:
       - name: Compile Python sources
         shell: pwsh
         run: |
-          $files = Get-ChildItem -Path . -Recurse -Filter *.py
+          $files = Get-ChildItem -Path . -Recurse -Filter *.py -File |
+            Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' }
+
+          foreach ($file in $files) {
+            python -m py_compile $file.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "Python compilation failed: $($file.FullName)"
+            }
+          }
+
+      - name: Run Python tests
+        shell: pwsh
+        run: |
+          if (Test-Path -LiteralPath '.\tests') {
+            python -m unittest discover -s tests -p 'test_*.py' -v
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Python tests failed.'
+            }
+          }
+          else {
+            Write-Host 'No tests directory exists yet.'
+          }
+
+      - name: Parse PowerShell files
+        shell: pwsh
+        run: .\tools\Test-PowerShellSyntax.ps1
+
+      - name: Validate repository and EDDiscovery artifacts
+        shell: pwsh
+        run: python .\tools\validate_release.py --root .
+
+      - name: Validate clean package layout
+        shell: pwsh
+        run: .\tools\Test-PackageLayout.ps1 -Root .
