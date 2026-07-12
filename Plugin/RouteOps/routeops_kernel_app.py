@@ -41,15 +41,15 @@ _UI_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
 
 
 class KernelRouteOpsApplication(legacy.RouteOpsApplication):
-    """EDDiscovery adapter that routes compilation and mutations through M1/M2 boundaries."""
+    """EDDiscovery adapter using compiler, provider, and kernel boundaries."""
 
     def __init__(self, client: Any) -> None:
         super().__init__(client)
         self.compiler = RouteCompiler()
         self.kernel: RouteKernel | None = None
 
-    def _compile_import_result(self, path: str) -> ImportResult:
-        compiled = self.compiler.compile_file(path)
+    def _compile_import_result(self, source: str) -> ImportResult:
+        compiled = self.compiler.compile_source(source)
         return ImportResult(
             route=compiled.route,
             warnings=list(compiled.warnings),
