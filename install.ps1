@@ -102,6 +102,7 @@ $required = @(
     (Join-Path $plugins 'clipboard_service.py'),
     (Join-Path $plugins 'state_store.py'),
     (Join-Path $plugins 'session_storage.py'),
+    (Join-Path $plugins 'runtime_health.py'),
     (Join-Path $plugins 'route_session.py'),
     (Join-Path $plugins 'kernel_contracts.py'),
     (Join-Path $plugins 'route_kernel.py'),
