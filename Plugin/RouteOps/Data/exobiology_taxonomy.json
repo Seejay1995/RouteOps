@@ -1,0 +1,20 @@
+{
+  "version": "2026-07",
+  "genera": [
+    {"id": "aleoida", "displayName": "Aleoida", "aliases": ["Aleoida", "Aleoida genus", "$Codex_Ent_Aleoids_Genus_Name;", "Codex_Ent_Aleoids_Genus_Name"]},
+    {"id": "bacterium", "displayName": "Bacterium", "aliases": ["Bacterium", "Bacterial", "Bacteria", "Bacterial genus", "$Codex_Ent_Bacterial_Genus_Name;", "Codex_Ent_Bacterial_Genus_Name", "$Codex_Ent_Bacterium_Genus_Name;", "Codex_Ent_Bacterium_Genus_Name"]},
+    {"id": "cactoida", "displayName": "Cactoida", "aliases": ["Cactoida", "Cactoida genus", "$Codex_Ent_Cactoid_Genus_Name;", "Codex_Ent_Cactoid_Genus_Name"]},
+    {"id": "clypeus", "displayName": "Clypeus", "aliases": ["Clypeus", "Clypeus genus", "$Codex_Ent_Clypeus_Genus_Name;", "Codex_Ent_Clypeus_Genus_Name"]},
+    {"id": "concha", "displayName": "Concha", "aliases": ["Concha", "Concha genus", "$Codex_Ent_Conchas_Genus_Name;", "Codex_Ent_Conchas_Genus_Name"]},
+    {"id": "electricae", "displayName": "Electricae", "aliases": ["Electricae", "Electricae genus", "$Codex_Ent_Electricae_Genus_Name;", "Codex_Ent_Electricae_Genus_Name"]},
+    {"id": "fonticulua", "displayName": "Fonticulua", "aliases": ["Fonticulua", "Fonticulua genus", "$Codex_Ent_Fonticulus_Genus_Name;", "Codex_Ent_Fonticulus_Genus_Name"]},
+    {"id": "frutexa", "displayName": "Frutexa", "aliases": ["Frutexa", "Frutexa genus", "$Codex_Ent_Shrubs_Genus_Name;", "Codex_Ent_Shrubs_Genus_Name"]},
+    {"id": "fumerola", "displayName": "Fumerola", "aliases": ["Fumerola", "Fumerola genus", "$Codex_Ent_Fumerolas_Genus_Name;", "Codex_Ent_Fumerolas_Genus_Name"]},
+    {"id": "fungoida", "displayName": "Fungoida", "aliases": ["Fungoida", "Fungoida genus", "$Codex_Ent_Fungoids_Genus_Name;", "Codex_Ent_Fungoids_Genus_Name"]},
+    {"id": "osseus", "displayName": "Osseus", "aliases": ["Osseus", "Osseus genus", "$Codex_Ent_Osseus_Genus_Name;", "Codex_Ent_Osseus_Genus_Name"]},
+    {"id": "recepta", "displayName": "Recepta", "aliases": ["Recepta", "Recepta genus", "$Codex_Ent_Recepta_Genus_Name;", "Codex_Ent_Recepta_Genus_Name"]},
+    {"id": "stratum", "displayName": "Stratum", "aliases": ["Stratum", "Stratum genus", "$Codex_Ent_Stratum_Genus_Name;", "Codex_Ent_Stratum_Genus_Name"]},
+    {"id": "tubus", "displayName": "Tubus", "aliases": ["Tubus", "Tubus genus", "$Codex_Ent_Tubus_Genus_Name;", "Codex_Ent_Tubus_Genus_Name"]},
+    {"id": "tussock", "displayName": "Tussock", "aliases": ["Tussock", "Tussock genus", "$Codex_Ent_Tussocks_Genus_Name;", "Codex_Ent_Tussocks_Genus_Name"]}
+  ]
+}

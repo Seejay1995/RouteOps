@@ -1,0 +1,32 @@
+﻿EDD RouteOps v0.5.0 installer
+Started: 2026-07-11 20:04:44
+
+Selected ACTIVE data root: E:\Gaming
+Selection reason: explicit -EddDataRoot parameter; priority 10000; score 240
+Backed up existing active-root plugin to: E:\Gaming\Plugins\RouteOps.backup-20260711-200444
+
+Verified active-root files:
+  E:\Gaming\Actions\RouteOpsPanel.act
+  E:\Gaming\Plugins\RouteOps\config.json
+  E:\Gaming\Plugins\RouteOps\RouteOps.py
+  E:\Gaming\Plugins\RouteOps\route_models.py
+  E:\Gaming\Plugins\RouteOps\route_importer.py
+  E:\Gaming\Plugins\RouteOps\trade_csv_importer.py
+  E:\Gaming\Plugins\RouteOps\spansh_exobiology_importer.py
+  E:\Gaming\Plugins\RouteOps\exobiology_catalog.py
+  E:\Gaming\Plugins\RouteOps\exobio_taxonomy.py
+  E:\Gaming\Plugins\RouteOps\exobio_projection.py
+  E:\Gaming\Plugins\RouteOps\exobio_diagnostics.py
+  E:\Gaming\Plugins\RouteOps\navigation_model.py
+  E:\Gaming\Plugins\RouteOps\Data\exobiology_catalog.json
+  E:\Gaming\Plugins\RouteOps\Data\exobiology_taxonomy.json
+  E:\Gaming\Plugins\RouteOps\route_engine.py
+  E:\Gaming\Plugins\RouteOps\journal_normalizer.py
+  E:\Gaming\Plugins\RouteOps\specializations.py
+  E:\Gaming\Plugins\RouteOps\route_metrics.py
+  E:\Gaming\Plugins\RouteOps\clipboard_service.py
+  E:\Gaming\Plugins\RouteOps\state_store.py
+  E:\Gaming\Plugins\RouteOps\ui_renderer.py
+  E:\Gaming\Plugins\RouteOps\checkmodules.py
+  E:\Gaming\Plugins\RouteOps\UIInterface.act
+  E:\Gaming\Plugins\RouteOps\routeops.png

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 3,
+  "id": "routeops-v3-exobiology-sample",
+  "name": "RouteOps v3 Exobiology Sample",
+  "routeMode": "exobiology",
+  "settings": {
+    "autoAdvance": true,
+    "autoCopyMode": "smart-target",
+    "addUnplannedOrganisms": true,
+    "defaultCompletionPolicy": "listed-targets",
+    "showFirstLoggedPotential": true
+  },
+  "systems": [
+    {
+      "id": "alpha",
+      "system": "Alpha",
+      "systemAddress": 100,
+      "bodies": [
+        {
+          "id": "alpha-1-a",
+          "body": "Alpha 1 A",
+          "bodyId": 1,
+          "biologicalSignals": 2,
+          "completionPolicy": "listed-targets",
+          "organisms": [
+            {
+              "id": "alpha-1-stratum",
+              "genus": "Stratum",
+              "species": "Stratum Tectonicas",
+              "samplesRequired": 3,
+              "required": true
+            },
+            {
+              "id": "alpha-1-bacterium",
+              "genus": "Bacterium",
+              "species": "Bacterium Informem",
+              "samplesRequired": 3,
+              "required": true
+            }
+          ]
+        },
+        {
+          "id": "alpha-2-b",
+          "body": "Alpha 2 B",
+          "bodyId": 2,
+          "biologicalSignals": 1,
+          "organisms": [
+            {
+              "id": "alpha-2-frutexa",
+              "genus": "Frutexa",
+              "species": "Frutexa Acus",
+              "samplesRequired": 3,
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "beta",
+      "system": "Beta",
+      "systemAddress": 200,
+      "bodies": [
+        {
+          "id": "beta-3",
+          "body": "Beta 3",
+          "bodyId": 3,
+          "biologicalSignals": 1,
+          "organisms": [
+            {
+              "id": "beta-3-stratum",
+              "genus": "Stratum",
+              "species": "Stratum Tectonicas",
+              "samplesRequired": 3,
+              "required": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

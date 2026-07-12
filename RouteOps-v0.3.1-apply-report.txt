@@ -1,0 +1,17 @@
+﻿EDD RouteOps v0.3.1 exobiology hotfix installer
+Started: 2026-07-11 18:04:05
+Project root: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2
+
+Verifying package hashes...
+Verified 46 package files.
+Creating source backup: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2\.routeops-backups\v0.3.1-20260711-180405
+Applying v0.3.1 files...
+Running the full RouteOps test suite...
+All 66 tests passed.
+Installing the verified plugin into EDDiscovery...
+Verifying the installed EDDiscovery files...
+
+SUCCESS: EDD RouteOps v0.3.1 was applied, tested, installed, and verified.
+Backup: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2\.routeops-backups\v0.3.1-20260711-180405
+Fully close EDDiscovery, confirm EDDiscovery.exe has exited, then restart it.
+After restart, press Use Exobio for a plain expedition route and set Bacterium: Off when desired.

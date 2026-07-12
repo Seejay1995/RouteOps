@@ -1,0 +1,23 @@
+ACTIONFILE V4
+
+ENABLED True
+
+INSTALL LongDescription="RouteOps executes EDDiscovery expedition and RouteOps JSON routes with waypoint, exploration, exobiology, materials, trade, cargo, and carrier specialties."
+INSTALL ShortDescription="RouteOps operations navigator"
+INSTALL Version=0.5.0.0
+INSTALL MinEDVersion=19.0.0.0
+INSTALL Location=Actions
+
+INSTALL PlugInPanel=RouteOpsPanelUniqueNameKey,EDDiscovery.UserControls.UserControlZMQPanel,"RouteOps",RouteOpsV1,"Operational route execution for waypoints, exploration, exobiology, materials, trade, cargo, and carrier workflows","routeops.png","Plugins\RouteOps"
+
+EVENT onStartup, onStartup, "", Condition AlwaysTrue
+EVENT onInstall, onInstall, "", Condition AlwaysTrue
+
+PROGRAM onStartup
+Print RouteOps plugin present
+END PROGRAM
+
+PROGRAM onInstall
+If InstallList Contains RouteOpsPanel;
+    MessageBox "RouteOps installed. Restart EDDiscovery, then use the panel selector (+) to add RouteOps as a tab or pop-out.", OK
+END PROGRAM

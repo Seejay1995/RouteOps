@@ -1,0 +1,23 @@
+EDD RouteOps v0.5.0 test results
+
+Automated suite: 98 passed, 0 failed, 0 errors.
+
+Coverage includes:
+- first-class system and body manifests before SAA;
+- explicit navigation targets independent from inspected rows;
+- system-entry transition to body guidance without work completion;
+- Confirm, Auto-copy, and Auto-advance guidance behavior;
+- route, nearest, value, and stored-manual body ordering;
+- body-qualified, value-aware species skip previews;
+- exact-body skip confirmation and reversible skip decisions;
+- removal of bodies with no remaining active targets;
+- species/variant certainty, scan counts, difficulty, and triage rendering;
+- state schema v6 round trips for navigation, ordering, skips, and difficulty;
+- canonical Bacterium filtering and system-manifest recalculation;
+- non-mutating filters and migration repair from v0.3 filter state;
+- Bacterium-only, mixed, unresolved, and manually overridden bodies;
+- raw, excluded, active, secured, in-progress, and remaining values;
+- diagnostic bundles including navigation and skip-decision data;
+- body-scoped exobiology progression, sales, imports, and dynamic bodies;
+- trade, materials, cargo, exploration, carrier, dock, land, and waypoint regressions;
+- fake EDDiscovery ZMQ integration and package contracts.

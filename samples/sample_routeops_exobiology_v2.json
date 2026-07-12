@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "name": "Exobiology Survey Run",
+  "routeMode": "exobiology",
+  "settings": {
+    "autoCopyMode": "current-target",
+    "autoAdvance": true,
+    "clipboardRetryCount": 6,
+    "clipboardRetryDelayMs": 75
+  },
+  "stops": [
+    {
+      "id": "exo-1",
+      "stopType": "exobiology",
+      "system": "Dryio Flyuae AA-A H32",
+      "body": "Dryio Flyuae AA-A H32 4 A",
+      "label": "Stratum survey",
+      "instructions": "Search flat rocky terrain near the terminator.",
+      "tasks": [
+        {
+          "id": "stratum",
+          "type": "scanOrganic",
+          "species": "Stratum Tectonicas",
+          "samplesRequired": 3,
+          "estimatedValue": 19010800,
+          "required": true
+        },
+        {
+          "id": "bacterium",
+          "type": "scanOrganic",
+          "genus": "Bacterium",
+          "samplesRequired": 3,
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "exo-2",
+      "stopType": "exobiology",
+      "system": "Synuefe NL-N C23-4",
+      "body": "Synuefe NL-N C23-4 B 3",
+      "label": "Second survey",
+      "tasks": [
+        {
+          "type": "scanOrganic",
+          "genus": "Frutexa",
+          "samplesRequired": 3
+        }
+      ]
+    }
+  ]
+}

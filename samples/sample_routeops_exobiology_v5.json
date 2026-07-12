@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 5,
+  "id": "routeops-v5-navigation-sample",
+  "name": "RouteOps v0.5 Navigation and Triage Sample",
+  "routeMode": "exobiology",
+  "settings": {
+    "guidanceMode": "confirm",
+    "bodyOrderMode": "nearest",
+    "autoAdvance": false,
+    "excludedOrganismGenera": ["Bacterium"],
+    "showExcludedOrganisms": true,
+    "routeViewMode": "active",
+    "defaultSkipReason": "too-difficult"
+  },
+  "systems": [
+    {
+      "id": "example-alpha",
+      "system": "Example Alpha",
+      "systemAddress": 100001,
+      "manifestSource": "routeops-v5-sample",
+      "bodies": [
+        {
+          "id": "example-alpha-2b",
+          "body": "Example Alpha 2 B",
+          "bodyId": 7,
+          "distanceFromArrivalLs": 5480.4,
+          "biologicalSignals": 4,
+          "manifestCompleteness": "exact",
+          "manualOrder": 2,
+          "completionPolicy": "listed-targets",
+          "organisms": [
+            {
+              "id": "alpha-2b-stratum",
+              "genus": "Stratum",
+              "species": "Stratum Tectonicas",
+              "samplesRequired": 3,
+              "knowledgeLevel": "confirmed-species"
+            },
+            {
+              "id": "alpha-2b-cactoida",
+              "genus": "Cactoida",
+              "species": "Cactoida Vermis",
+              "variant": "Cactoida Vermis - Route target variety",
+              "samplesRequired": 3,
+              "knowledgeLevel": "confirmed-variant",
+              "searchDifficulty": "hard"
+            },
+            {
+              "id": "alpha-2b-tussock",
+              "genus": "Tussock",
+              "species": "Tussock Virgam",
+              "samplesRequired": 3,
+              "knowledgeLevel": "confirmed-species"
+            },
+            {
+              "id": "alpha-2b-bacterium",
+              "genus": "$Codex_Ent_Bacterial_Genus_Name;",
+              "species": "Bacterium Informem",
+              "samplesRequired": 3,
+              "knowledgeLevel": "confirmed-species"
+            }
+          ]
+        },
+        {
+          "id": "example-alpha-1a",
+          "body": "Example Alpha 1 A",
+          "bodyId": 4,
+          "distanceFromArrivalLs": 4211.0,
+          "biologicalSignals": 2,
+          "manifestCompleteness": "exact",
+          "manualOrder": 1,
+          "completionPolicy": "listed-targets",
+          "organisms": [
+            {
+              "id": "alpha-1a-frutexa",
+              "genus": "Frutexa",
+              "species": "Frutexa Acus",
+              "samplesRequired": 3,
+              "knowledgeLevel": "confirmed-species"
+            },
+            {
+              "id": "alpha-1a-bacterium",
+              "genus": "Bacterium",
+              "species": "Bacterium Volu",
+              "samplesRequired": 3,
+              "knowledgeLevel": "confirmed-species"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "example-beta",
+      "system": "Example Beta",
+      "systemAddress": 100002,
+      "manifestSource": "routeops-v5-sample",
+      "bodies": [
+        {
+          "id": "example-beta-3",
+          "body": "Example Beta 3",
+          "bodyId": 3,
+          "distanceFromArrivalLs": 775.2,
+          "biologicalSignals": 2,
+          "manifestCompleteness": "bodies-known",
+          "manualOrder": 1,
+          "completionPolicy": "all-signals",
+          "organisms": [
+            {
+              "id": "beta-3-stratum",
+              "genus": "Stratum",
+              "samplesRequired": 3,
+              "knowledgeLevel": "genus-confirmed"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

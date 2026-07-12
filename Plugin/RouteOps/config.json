@@ -1,0 +1,13 @@
+{
+  "Panel": {
+    "SupportTransparency": true,
+    "DefaultTransparent": false,
+    "Hidden": false
+  },
+  "Python": {
+    "ModulesCheck": "checkmodules.py",
+    "Modules": ["pyzmq"],
+    "Start": "RouteOps.py",
+    "CreateNoWindow": true
+  }
+}
