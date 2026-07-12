@@ -1,0 +1,73 @@
+name: M0 Reliability Baseline
+
+on:
+  push:
+    branches:
+      - main
+      - phase/m0-reliability-baseline
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check pyzmq
+
+      - name: Compile Python sources
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path . -Recurse -Filter *.py -File |
+            Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' }
+
+          foreach ($file in $files) {
+            python -c "from pathlib import Path; compile(Path(r'$($file.FullName)').read_text(encoding='utf-8-sig'), r'$($file.FullName)', 'exec')"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Python compilation failed: $($file.FullName)"
+            }
+          }
+
+      - name: Run Python tests
+        if: always()
+        shell: pwsh
+        run: python .\tools\run_tests.py --output .\test-report.txt
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m0-test-report
+          path: test-report.txt
+          if-no-files-found: warn
+
+      - name: Parse PowerShell files
+        if: always()
+        shell: pwsh
+        run: .\tools\Test-PowerShellSyntax.ps1
+
+      - name: Validate repository and EDDiscovery artifacts
+        if: always()
+        shell: pwsh
+        run: python .\tools\validate_release.py --root .
+
+      - name: Validate clean package layout
+        if: always()
+        shell: pwsh
+        run: .\tools\Test-PackageLayout.ps1 -Root .

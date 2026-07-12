@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 3,
+  "id": "routeops-v4-workspace-sample",
+  "name": "RouteOps v0.4 Exobiology Workspace Sample",
+  "routeMode": "exobiology",
+  "settings": {
+    "autoAdvance": true,
+    "autoCopyMode": "smart-target",
+    "excludedOrganismGenera": ["Bacterium"],
+    "showExcludedOrganisms": true,
+    "routeViewMode": "active"
+  },
+  "systems": [
+    {
+      "system": "Example Alpha",
+      "systemAddress": 100001,
+      "bodies": [
+        {
+          "body": "Example Alpha 1 A",
+          "bodyId": 4,
+          "biologicalSignals": 3,
+          "completionPolicy": "all-signals",
+          "organisms": [
+            {"species": "Stratum Tectonicas", "samplesRequired": 3},
+            {"species": "Bacterium Informem", "samplesRequired": 3},
+            {"genus": "Tussock", "samplesRequired": 3}
+          ]
+        },
+        {
+          "body": "Example Alpha 2 B",
+          "bodyId": 7,
+          "biologicalSignals": 1,
+          "completionPolicy": "all-signals",
+          "organisms": [
+            {"genus": "$Codex_Ent_Bacterial_Genus_Name;", "samplesRequired": 3}
+          ]
+        }
+      ]
+    },
+    {
+      "system": "Example Beta",
+      "systemAddress": 100002,
+      "bodies": [
+        {
+          "body": "Example Beta 3",
+          "bodyId": 3,
+          "biologicalSignals": 2,
+          "completionPolicy": "all-signals",
+          "organisms": [
+            {"species": "Frutexa Acus", "samplesRequired": 3}
+          ]
+        }
+      ]
+    }
+  ]
+}

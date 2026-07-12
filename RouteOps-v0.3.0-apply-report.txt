@@ -1,0 +1,11 @@
+﻿EDD RouteOps v0.3.0 patch installer
+Started: 2026-07-11 17:11:07
+Project root: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2
+
+Verifying package hashes...
+Verified 45 package files.
+Creating backup: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2\.routeops-backups\v0.3.0-20260711-171107
+Applying files...
+Running the full RouteOps test suite...
+
+FAILED: test_busy_clipboard_retries_then_succeeds (test_clipboard_state_ui.ClipboardTests.test_busy_clipboard_retries_then_succeeds) ... ok

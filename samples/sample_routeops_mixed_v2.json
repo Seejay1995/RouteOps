@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 2,
+  "name": "Mixed Operations Route",
+  "routeMode": "mixed",
+  "settings": {
+    "autoCopyMode": "current-target",
+    "autoAdvance": true
+  },
+  "stops": [
+    {
+      "id": "depart",
+      "stopType": "waypoint",
+      "system": "Diaguandri",
+      "label": "Departure waypoint"
+    },
+    {
+      "id": "buy-tritium",
+      "stopType": "cargo",
+      "system": "LHS 2936",
+      "station": "Fraser Orbital",
+      "label": "Load Tritium",
+      "tasks": [
+        {
+          "type": "dockAtStation",
+          "station": "Fraser Orbital"
+        },
+        {
+          "type": "loadCommodity",
+          "commodity": "Tritium",
+          "quantity": 720
+        }
+      ]
+    },
+    {
+      "id": "exo-survey",
+      "stopType": "exobiology",
+      "system": "Synuefe NL-N C23-4",
+      "body": "Synuefe NL-N C23-4 B 3",
+      "tasks": [
+        {
+          "type": "scanOrganic",
+          "genus": "Stratum",
+          "samplesRequired": 3
+        }
+      ]
+    },
+    {
+      "id": "materials",
+      "stopType": "materials",
+      "system": "HIP 36601",
+      "body": "HIP 36601 C 1 A",
+      "tasks": [
+        {
+          "type": "collectMaterial",
+          "material": "Polonium",
+          "quantity": 25
+        }
+      ]
+    }
+  ]
+}

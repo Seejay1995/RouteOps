@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "name": "Ray Gateway Trade Run",
+  "routeMode": "trade",
+  "stops": [
+    {
+      "id": "buy-gold",
+      "stopType": "trade",
+      "system": "Diaguandri",
+      "station": "Ray Gateway",
+      "label": "Buy Gold",
+      "tasks": [
+        {
+          "type": "dockAtStation",
+          "station": "Ray Gateway"
+        },
+        {
+          "type": "buyCommodity",
+          "commodity": "Gold",
+          "quantity": 192
+        }
+      ]
+    },
+    {
+      "id": "sell-gold",
+      "stopType": "trade",
+      "system": "LHS 2936",
+      "station": "Fraser Orbital",
+      "label": "Sell Gold",
+      "tasks": [
+        {
+          "type": "dockAtStation",
+          "station": "Fraser Orbital"
+        },
+        {
+          "type": "sellCommodity",
+          "commodity": "Gold",
+          "quantity": 192
+        }
+      ]
+    }
+  ]
+}

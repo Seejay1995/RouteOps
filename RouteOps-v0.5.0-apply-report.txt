@@ -1,0 +1,17 @@
+﻿EDD RouteOps v0.5.0 Navigation and Target Triage installer
+Started: 2026-07-11 20:04:34
+Project root: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2
+
+Verifying package hashes...
+Verified 56 package files.
+Creating source backup: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2\.routeops-backups\v0.5.0-20260711-200434
+Applying v0.5.0 files...
+Running the full RouteOps test suite...
+All 98 tests passed.
+Installing the verified plugin into EDDiscovery...
+Verifying the installed EDDiscovery files...
+
+SUCCESS: EDD RouteOps v0.5.0 was applied, tested, installed, and verified.
+Backup: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2\.routeops-backups\v0.5.0-20260711-200434
+Fully close EDDiscovery, confirm EDDiscovery.exe has exited, then restart it.
+After restart, inspect the system queue, choose a body target, and use Preview Skip before abandoning a difficult species.

@@ -1,0 +1,50 @@
+{
+  "id": "routeops-exobio-demo",
+  "name": "Exobiology Demo",
+  "routeType": "exobiology",
+  "stops": [
+    {
+      "id": "exo-1",
+      "system": "Synuefe NL-N C23-4",
+      "body": "Synuefe NL-N C23-4 B 3",
+      "activity": "exobiology",
+      "notes": "Land in a suitable biome and complete the three genetic samples.",
+      "tasks": [
+        {
+          "id": "exo-1-stratum",
+          "type": "scanSpecies",
+          "species": "Stratum Tectonicas",
+          "samplesRequired": 3
+        }
+      ]
+    },
+    {
+      "id": "mat-1",
+      "system": "HIP 36601",
+      "body": "HIP 36601 C 1 A",
+      "activity": "rawMaterials",
+      "tasks": [
+        {
+          "id": "mat-1-polonium",
+          "type": "collectMaterial",
+          "material": "Polonium",
+          "desiredGain": 10
+        }
+      ]
+    },
+    {
+      "id": "cargo-1",
+      "system": "LHS 2936",
+      "station": "Fraser Orbital",
+      "activity": "cargo",
+      "tasks": [
+        {
+          "id": "cargo-1-tritium",
+          "type": "buyCommodity",
+          "commodity": "Tritium",
+          "quantity": 20
+        }
+      ]
+    }
+  ]
+}

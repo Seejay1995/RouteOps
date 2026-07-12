@@ -1,0 +1,17 @@
+﻿EDD RouteOps v0.4.0 Exobiology Workspace installer
+Started: 2026-07-11 19:13:12
+Project root: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2
+
+Verifying package hashes...
+Verified 52 package files.
+Creating source backup: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2\.routeops-backups\v0.4.0-20260711-191312
+Applying v0.4.0 files...
+Running the full RouteOps test suite...
+All 85 tests passed.
+Installing the verified plugin into EDDiscovery...
+Verifying the installed EDDiscovery files...
+
+SUCCESS: EDD RouteOps v0.4.0 was applied, tested, installed, and verified.
+Backup: E:\Projects\EDD-RouteOps-v0.2.2 (1)\EDD-RouteOps-v0.2.2\.routeops-backups\v0.4.0-20260711-191312
+Fully close EDDiscovery, confirm EDDiscovery.exe has exited, then restart it.
+After restart, use Bacterium: Excluded to isolate Bacterium; View: All keeps filtered bodies inspectable.

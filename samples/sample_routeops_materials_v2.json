@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "name": "Raw Materials Run",
+  "routeMode": "materials",
+  "stops": [
+    {
+      "id": "hip-36601-c1a",
+      "stopType": "materials",
+      "system": "HIP 36601",
+      "body": "HIP 36601 C 1 A",
+      "label": "Polonium crystal shards",
+      "instructions": "Land at the crystal shard site and collect until the target is met.",
+      "tasks": [
+        {
+          "id": "polonium-session",
+          "type": "collectMaterial",
+          "material": "Polonium",
+          "quantity": 50,
+          "countMode": "session"
+        }
+      ]
+    },
+    {
+      "id": "hip-36601-c1d",
+      "stopType": "materials",
+      "system": "HIP 36601",
+      "body": "HIP 36601 C 1 D",
+      "label": "Ruthenium crystal shards",
+      "tasks": [
+        {
+          "type": "reachInventoryQuantity",
+          "material": "Ruthenium",
+          "quantity": 100,
+          "countMode": "inventory"
+        }
+      ]
+    }
+  ]
+}
