@@ -64,9 +64,11 @@ class PackageContractTests(unittest.TestCase):
         self.assertTrue((PLUGIN / "kernel_contracts.py").is_file())
         self.assertTrue((PLUGIN / "route_kernel.py").is_file())
         self.assertTrue((PLUGIN / "route_session.py").is_file())
+        self.assertTrue((PLUGIN / "session_storage.py").is_file())
         self.assertTrue((PLUGIN / "route_compiler.py").is_file())
         self.assertTrue((PLUGIN / "source_providers.py").is_file())
         self.assertTrue((PLUGIN / "routeops_kernel_app.py").is_file())
+        self.assertTrue((ROOT / "portable-root.ps1").is_file())
 
 
 if __name__ == "__main__":
