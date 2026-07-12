@@ -10,4 +10,5 @@ from route_session import RouteSession
 class RouteKernel:
     """Stable command and journal boundary over a route session."""
 
-    def __init__(self, runtime
+    def __init__(self, runtime: RouteSession | RouteEngine) -> None:
+        self._legacy_snapshot = isinstance(runtime
