@@ -60,6 +60,10 @@ class PackageContractTests(unittest.TestCase):
         self.assertIn("DialogEntry controls,SKIPPREVIEW", ui)
         self.assertIn("DialogEntry controls,SKIPCONFIRM", ui)
 
+    def test_kernel_boundary_is_packaged(self):
+        self.assertTrue((PLUGIN / "kernel_contracts.py").is_file())
+        self.assertTrue((PLUGIN / "route_kernel.py").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
