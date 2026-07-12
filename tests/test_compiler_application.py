@@ -28,15 +28,17 @@ class CompilerApplicationTests(unittest.TestCase):
             warnings=("warning",),
             errors=("error",),
         )
-        app.compiler = SimpleNamespace(compile_file=mock.Mock(return_value=compiled))
+        compile_source = mock.Mock(return_value=compiled)
+        app.compiler = SimpleNamespace(compile_source=compile_source)
 
         result = app._compile_import_result("route.json")
 
+        compile_source.assert_called_once_with("route.json")
         self.assertIs(route, result.route)
         self.assertEqual(["warning"], result.warnings)
         self.assertEqual(["error"], result.errors)
 
-    def test_load_route_uses_compiler_and_restores_legacy_importer(self):
+    def test_load_route_uses_provider_aware_compiler_and_restores_legacy_importer(self):
         app = self.app()
         compiled = CompileResult(
             route=None,
@@ -44,8 +46,8 @@ class CompilerApplicationTests(unittest.TestCase):
             warnings=("warning",),
             errors=("error",),
         )
-        compile_file = mock.Mock(return_value=compiled)
-        app.compiler = SimpleNamespace(compile_file=compile_file)
+        compile_source = mock.Mock(return_value=compiled)
+        app.compiler = SimpleNamespace(compile_source=compile_source)
         original_importer = adapter.legacy.import_route
         captured = {}
 
@@ -57,7 +59,7 @@ class CompilerApplicationTests(unittest.TestCase):
         with mock.patch.object(adapter.legacy.RouteOpsApplication, "load_route", fake_legacy_load):
             app.load_route("route.json", quiet=True)
 
-        compile_file.assert_called_once_with("route.json")
+        compile_source.assert_called_once_with("route.json")
         self.assertEqual("route.json", captured["path"])
         self.assertTrue(captured["quiet"])
         self.assertEqual(["warning"], captured["result"].warnings)
