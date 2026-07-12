@@ -25,7 +25,7 @@ class RouteCompilerTests(unittest.TestCase):
         compiled = RouteCompiler().compile_file(path)
 
         self.assertTrue(compiled.success)
-        self.assertEqual(imported.route.to_state(), compiled.route.to_state())
+        self.assertEqual(imported.route, compiled.route)
         self.assertEqual(tuple(imported.warnings), compiled.warnings)
         self.assertEqual(tuple(imported.errors), compiled.errors)
         self.assertEqual(imported.route.source_format, compiled.source_format)
