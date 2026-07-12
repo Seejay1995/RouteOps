@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, Mapping
 
 
@@ -34,32 +35,14 @@ class KernelCommandType:
 
     ALL = frozenset(
         {
-            SELECT_SYSTEM,
-            SELECT_BODY,
-            SELECT_TASK,
-            PREVIOUS_TARGET,
-            NEXT_TARGET,
-            CYCLE_GUIDANCE,
-            CYCLE_BODY_ORDER,
-            CHOOSE_SELECTED_BODY,
-            COMPLETE_CURRENT,
-            SKIP_CURRENT,
-            REOPEN_STOP,
-            COMPLETE_SELECTED_TASK,
-            PREVIEW_SELECTED_TASK_SKIP,
-            CONFIRM_PENDING_SKIP,
-            CANCEL_PENDING_SKIP,
-            UNDO_LAST_SKIP,
-            CYCLE_SKIP_REASON,
-            CYCLE_SELECTED_DIFFICULTY,
-            REOPEN_SELECTED_TASK,
-            RESET_STOP,
-            ENABLE_EXOBIOLOGY_MODE,
-            TOGGLE_GENUS_FILTER,
-            TOGGLE_SHOW_EXCLUDED,
-            TOGGLE_ROUTE_VIEW,
-            SET_SELECTED_TASK_INCLUSION,
-            SET_SELECTED_BODY_INCLUSION,
+            SELECT_SYSTEM, SELECT_BODY, SELECT_TASK, PREVIOUS_TARGET, NEXT_TARGET,
+            CYCLE_GUIDANCE, CYCLE_BODY_ORDER, CHOOSE_SELECTED_BODY,
+            COMPLETE_CURRENT, SKIP_CURRENT, REOPEN_STOP, COMPLETE_SELECTED_TASK,
+            PREVIEW_SELECTED_TASK_SKIP, CONFIRM_PENDING_SKIP, CANCEL_PENDING_SKIP,
+            UNDO_LAST_SKIP, CYCLE_SKIP_REASON, CYCLE_SELECTED_DIFFICULTY,
+            REOPEN_SELECTED_TASK, RESET_STOP, ENABLE_EXOBIOLOGY_MODE,
+            TOGGLE_GENUS_FILTER, TOGGLE_SHOW_EXCLUDED, TOGGLE_ROUTE_VIEW,
+            SET_SELECTED_TASK_INCLUSION, SET_SELECTED_BODY_INCLUSION,
         }
     )
 
@@ -69,12 +52,19 @@ class KernelCommand:
     command_type: str
     payload: Mapping[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "payload", MappingProxyType(dict(self.payload)))
+
 
 @dataclass(frozen=True)
 class KernelResult:
-    actions: tuple[dict[str, Any], ...] = ()
+    actions: tuple[Mapping[str, Any], ...] = ()
     changed: bool = False
     error: str = ""
+
+    def __post_init__(self) -> None:
+        frozen = tuple(MappingProxyType(dict(action)) for action in self.actions)
+        object.__setattr__(self, "actions", frozen)
 
     @property
     def success(self) -> bool:
@@ -82,8 +72,7 @@ class KernelResult:
 
     @classmethod
     def from_actions(cls, actions: list[dict[str, Any]]) -> "KernelResult":
-        copied = tuple(dict(action) for action in actions)
-        return cls(actions=copied, changed=bool(copied))
+        return cls(actions=tuple(actions), changed=bool(actions))
 
     @classmethod
     def failure(cls, message: str) -> "KernelResult":
