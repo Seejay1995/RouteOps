@@ -4,13 +4,20 @@ from typing import Any, Callable
 
 from kernel_contracts import KernelCommand, KernelCommandType, KernelResult
 from route_engine import RouteEngine
+from route_session import RouteSession
 
 
 class RouteKernel:
-    """Stable command and journal boundary over RouteEngine."""
+    """Stable command and journal boundary over a route session."""
 
-    def __init__(self, engine: RouteEngine) -> None:
-        self._engine = engine
+    def __init__(self, runtime: RouteSession | RouteEngine) -> None:
+        self._legacy_snapshot = isinstance(runtime, RouteEngine)
+        self._session = RouteSession.attach(runtime) if self._legacy_snapshot else runtime
+        self._engine = self._session.engine
+
+    @property
+    def session(self) -> RouteSession:
+        return self._session
 
     @property
     def engine(self) -> RouteEngine:
@@ -61,4 +68,6 @@ class RouteKernel:
         return KernelResult.from_actions(self._engine.hydrate_journal_knowledge(entry))
 
     def snapshot(self) -> dict[str, Any]:
-        return self._engine.to_state()
+        if self._legacy_snapshot:
+            return self._engine.to_state()
+        return self._session.snapshot()

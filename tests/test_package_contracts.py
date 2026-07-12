@@ -63,6 +63,7 @@ class PackageContractTests(unittest.TestCase):
     def test_application_boundaries_are_packaged(self):
         self.assertTrue((PLUGIN / "kernel_contracts.py").is_file())
         self.assertTrue((PLUGIN / "route_kernel.py").is_file())
+        self.assertTrue((PLUGIN / "route_session.py").is_file())
         self.assertTrue((PLUGIN / "route_compiler.py").is_file())
         self.assertTrue((PLUGIN / "source_providers.py").is_file())
         self.assertTrue((PLUGIN / "routeops_kernel_app.py").is_file())
