@@ -16,16 +16,20 @@ from route_kernel import RouteKernel  # noqa: E402
 
 
 class RouteKernelTests(unittest.TestCase):
-    def make_engine(self, value: dict) -> RouteEngine:
+    def make_route_path(self, value: dict) -> Path:
         folder = Path(tempfile.mkdtemp())
         path = folder / "route.json"
         path.write_text(json.dumps(value), encoding="utf-8")
-        return RouteEngine(load_route(path))
+        return path
+
+    def make_engine(self, value: dict) -> RouteEngine:
+        return RouteEngine(load_route(self.make_route_path(value)))
 
     def test_journal_dispatch_matches_direct_engine_behavior(self):
         route = {"Name": "EDD", "Systems": ["Sol", "Colonia"]}
-        direct = self.make_engine(route)
-        wrapped = self.make_engine(route)
+        path = self.make_route_path(route)
+        direct = RouteEngine(load_route(path))
+        wrapped = RouteEngine(load_route(path))
 
         entry = {"EventTypeID": "FSDJump", "StarSystem": "Sol", "Id": 1}
         expected = direct.handle_journal(entry)
