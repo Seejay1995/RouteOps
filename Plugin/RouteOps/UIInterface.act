@@ -16,7 +16,7 @@ DialogEntry controls,DGV,dgv,"",10,10,10,10,"System navigation queue","",Fill,""
 
 DialogEntry controls,BODIES,dgv,"",0,0,1,172,"Selected system body manifest","",Bottom,"","",0;(text,"Order",48,Numeric),(text,"Body",210),(text,"Distance",82),(text,"Bio",45),(text,"Targets",120),(text,"Scans",62),(text,"Active Value",105),(text,"State",92)
 DialogEntry controls,ORGANISMS,dgv,"",0,0,1,190,"Selected body species triage","",Bottom,"","",0;(text,"Decision",68),(text,"Certainty",88),(text,"Species",210),(text,"Variant",145),(text,"Scans",55),(text,"Value",105),(text,"Difficulty",82),(text,"Source",85)
-DialogEntry controls,DETAIL,richtextbox,"",0,0,1,220,"Selected body and species details","",Bottom,"",""
+DialogEntry controls,DETAIL,richtextbox,"",0,0,1,220,"Selected body, species, and runtime health details","",Bottom,"",""
 
 DialogEntry controls,TRIAGEBAR,flowpanel,"",0,0,1,34,"Species triage controls","",Bottom,"","",Horizontal
 DialogEntry controls,TASKDONE,Button,"Complete Species",0,0,102,28,"Complete the selected species on the selected body","TRIAGEBAR"
@@ -41,7 +41,7 @@ DialogEntry controls,BODYEXCLUDE,Button,"Exclude Body",0,0,82,28,"Manually exclu
 DialogEntry controls,BODYDEFAULT,Button,"Reset Body Filter",0,0,104,28,"Remove the inspected body inclusion override","BODYBAR"
 DialogEntry controls,RESETSTOP,Button,"Reset Body",0,0,72,28,"Reset inspected body and species progress","BODYBAR"
 
-DialogEntry controls,TOOLBAR,flowpanel,"",0,0,1,34,"Navigation controls","",Top,"","",Horizontal
+DialogEntry controls,TOOLBAR,flowpanel,"",0,0,1,34,"Navigation and diagnostics controls","",Top,"","",Horizontal
 DialogEntry controls,LOAD,Button,"Load Route",0,0,65,28,"Load expedition JSON, RouteOps manifest, Spansh export, or EDDiscovery Route CSV","TOOLBAR"
 DialogEntry controls,RELOAD,Button,"Reload",0,0,50,28,"Reload active route","TOOLBAR"
 DialogEntry controls,NAVCOPY,Button,"Copy Target",0,0,82,28,"Copy the explicit navigation target","TOOLBAR"
@@ -53,13 +53,15 @@ DialogEntry controls,EXOMODE,Button,"Use Exobio",0,0,86,28,"Convert a system-onl
 DialogEntry controls,BACTERIUM,Button,"Bacterium: Included",0,0,126,28,"Include or exclude Bacterium from active navigation, completion, and value","TOOLBAR"
 DialogEntry controls,SHOWEXCLUDED,Button,"Show Excluded: Yes",0,0,126,28,"Show or hide filtered species while preserving their progress","TOOLBAR"
 DialogEntry controls,ROUTEVIEW,Button,"View: Active",0,0,88,28,"Switch body manifests between active and all bodies","TOOLBAR"
+DialogEntry controls,HEALTH,Button,"Health",0,0,58,28,"Run portable install, dependency, registration, route, and storage checks","TOOLBAR"
+DialogEntry controls,HEALTHEXPORT,Button,"Export Health",0,0,86,28,"Export runtime health as JSON and text under the plugin Diagnostics folder","TOOLBAR"
 DialogEntry controls,DEBUGBUNDLE,Button,"Export Debug",0,0,82,28,"Export route, navigation, species, filter, value, skip, and journal diagnostics","TOOLBAR"
 
 DialogEntry controls,HEADER,richtextbox,"",0,0,1,96,"Navigation summary","",Top,"",""
 
 DialogControl UC, AddRange controls
-DialogControl UC, setescape HEADER="RouteOps v0.5.0 starting...\r\nLoading navigation and route state."
-DialogControl UC, setescape DETAIL="Select a system, inspect a body manifest, then choose an explicit navigation target."
+DialogControl UC, setescape HEADER="RouteOps v0.5.0 starting...\r\nLoading navigation, route state, and runtime health."
+DialogControl UC, setescape DETAIL="Select Health at any time to inspect the active portable installation and storage paths."
 
 END PROGRAM
 
