@@ -7,7 +7,7 @@
   "Python": {
     "ModulesCheck": "checkmodules.py",
     "Modules": ["pyzmq"],
-    "Start": "RouteOps.py",
+    "Start": "routeops_kernel_app.py",
     "CreateNoWindow": true
   }
 }
