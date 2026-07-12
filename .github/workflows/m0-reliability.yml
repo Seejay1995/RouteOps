@@ -40,25 +40,19 @@ jobs:
 
       - name: Run Python tests
         shell: pwsh
-        run: |
-          if (Test-Path -LiteralPath '.\tests') {
-            python -m unittest discover -s tests -p 'test_*.py' -v
-            if ($LASTEXITCODE -ne 0) {
-              throw 'Python tests failed.'
-            }
-          }
-          else {
-            Write-Host 'No tests directory exists yet.'
-          }
+        run: python .\tools\run_tests.py --root . --tests tests
 
       - name: Parse PowerShell files
+        if: always()
         shell: pwsh
         run: .\tools\Test-PowerShellSyntax.ps1
 
       - name: Validate repository and EDDiscovery artifacts
+        if: always()
         shell: pwsh
         run: python .\tools\validate_release.py --root .
 
       - name: Validate clean package layout
+        if: always()
         shell: pwsh
         run: .\tools\Test-PackageLayout.ps1 -Root .
