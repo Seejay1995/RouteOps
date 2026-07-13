@@ -49,16 +49,24 @@ A missing route is reported as a warning because portable drive letters can chan
 
 ## Exit criteria
 
-- [ ] Health checks run with no route loaded.
-- [ ] Health checks do not mutate route or kernel state.
-- [ ] Required files, configuration, dependency, registration, and storage checks are covered.
-- [ ] Portable state storage is tested with a real write and cleanup.
-- [ ] Missing routes produce actionable warnings.
-- [ ] Health controls remain enabled regardless of route state.
-- [ ] JSON and text exports contain matching report data.
-- [ ] Installer and package contracts include `runtime_health.py` and both controls.
-- [ ] Python, PowerShell, EDDiscovery, and clean-package validation pass.
-- [ ] Migration and rollback evidence is complete.
+- [x] Health checks run with no route loaded.
+- [x] Health checks do not mutate route or kernel state.
+- [x] Required files, configuration, dependency, registration, and storage checks are covered.
+- [x] Portable state storage is tested with a real write and cleanup.
+- [x] Missing routes produce actionable warnings.
+- [x] Health controls remain enabled regardless of route state.
+- [x] JSON and text exports contain matching report data.
+- [x] Installer and package contracts include `runtime_health.py` and both controls.
+- [x] Python, PowerShell, EDDiscovery, and clean-package validation pass.
+- [x] Migration and rollback evidence is complete.
+
+## Validation evidence
+
+GitHub Actions workflow run #68 passed on Windows at commit `1dcfd8265994ad73b493cbab2e5c8e0fa01bc4e1`. Python compilation, the complete Python test suite, PowerShell parsing, EDDiscovery artifact validation, and clean-package validation all completed successfully.
+
+The regression suite verifies route-free health checks, complete portable layouts, required-file failures, moved or missing routes, route-adjacent and fallback state paths, real fallback-directory write probes with cleanup, JSON/text export consistency, and EDDiscovery panel invocation without a loaded route.
+
+The initial workflow run #67 exposed a Windows short-path versus long-path test comparison. Production path resolution was correct; the test was repaired to compare filesystem identity rather than raw path strings, and run #68 passed.
 
 ## Migration and rollback
 
