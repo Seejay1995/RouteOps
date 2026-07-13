@@ -45,18 +45,24 @@ No separate database or machine-profile storage is introduced.
 
 ## Exit criteria
 
-- [ ] Complete route-library module replaces the truncated prototype.
-- [ ] Recent entries round-trip through EDDiscovery config.
-- [ ] Duplicate copies are deduplicated by fingerprint.
-- [ ] Library size is bounded.
-- [ ] Missing routes recover through bounded portable roots.
-- [ ] Incorrect-content candidates are rejected.
-- [ ] Successful route loads update the library.
-- [ ] Startup repairs a moved remembered route when possible.
-- [ ] Recent Route and Route Library controls work without changing route/session formats.
-- [ ] Installer verifies `route_library.py`.
-- [ ] Python, PowerShell, EDDiscovery, and clean-package validation pass.
-- [ ] Migration and rollback evidence is complete.
+- [x] Complete route-library module replaces the truncated prototype.
+- [x] Recent entries round-trip through EDDiscovery config.
+- [x] Duplicate copies are deduplicated by fingerprint.
+- [x] Library size is bounded.
+- [x] Missing routes recover through bounded portable roots.
+- [x] Incorrect-content candidates are rejected.
+- [x] Successful route loads update the library.
+- [x] Startup repairs a moved remembered route when possible.
+- [x] Recent Route and Route Library controls work without changing route/session formats.
+- [x] Installer verifies `route_library.py`.
+- [x] Python, PowerShell, EDDiscovery, and clean-package validation pass.
+- [x] Migration and rollback evidence is complete.
+
+## Validation evidence
+
+GitHub Actions workflow run #71 passed on Windows at commit `bc025d2b3f2ec7ff652c82844c486d22457bb196`. The workflow completed Python compilation and tests, PowerShell parsing, EDDiscovery artifact validation, and clean-package validation successfully.
+
+Regression coverage includes configuration round-trip, bounded history, fingerprint deduplication, matching moved-route recovery, and rejection of incorrect candidate content.
 
 ## Migration and rollback
 
