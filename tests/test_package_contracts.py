@@ -33,10 +33,12 @@ class PackageContractTests(unittest.TestCase):
         self.assertNotIn("controls,RTB,richtextbox", text)
 
     def test_registration_and_ui_versions_match(self):
+        version = (ROOT / "VERSION").read_text(encoding="utf-8-sig").strip()
+        expected = f"Version={version}.0"
         registration = (ROOT / "ActionFiles" / "V1" / "RouteOpsPanel.act").read_text(encoding="utf-8")
         ui = (PLUGIN / "UIInterface.act").read_text(encoding="utf-8")
-        self.assertIn("Version=0.5.0.0", registration)
-        self.assertIn("Version=0.5.0.0", ui)
+        self.assertIn(expected, registration)
+        self.assertIn(expected, ui)
 
     def test_trade_csv_importer_and_load_filter_are_packaged(self):
         self.assertTrue((PLUGIN / "trade_csv_importer.py").is_file())
@@ -68,10 +70,12 @@ class PackageContractTests(unittest.TestCase):
         self.assertTrue((PLUGIN / "route_session.py").is_file())
         self.assertTrue((PLUGIN / "session_storage.py").is_file())
         self.assertTrue((PLUGIN / "runtime_health.py").is_file())
+        self.assertTrue((PLUGIN / "route_library.py").is_file())
         self.assertTrue((PLUGIN / "route_compiler.py").is_file())
         self.assertTrue((PLUGIN / "source_providers.py").is_file())
         self.assertTrue((PLUGIN / "routeops_kernel_app.py").is_file())
         self.assertTrue((ROOT / "portable-root.ps1").is_file())
+        self.assertTrue((ROOT / "rollback.ps1").is_file())
 
 
 if __name__ == "__main__":
