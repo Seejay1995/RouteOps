@@ -38,9 +38,12 @@ class KernelApplicationTests(unittest.TestCase):
             self.assertTrue(app.handle_message({"responsetype": "journalpush", "journalEntry": {"EventTypeID": "FSDJump"}}))
         accept.assert_called_once_with(result)
 
-    def test_package_starts_kernel_adapter(self):
+    def test_package_starts_safe_kernel_runtime(self):
         config = json.loads((PLUGIN / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual("routeops_kernel_app.py", config["Python"]["Start"])
+        self.assertEqual("routeops_runtime.py", config["Python"]["Start"])
+        runtime = (PLUGIN / "routeops_runtime.py").read_text(encoding="utf-8")
+        self.assertIn("KernelRouteOpsApplication", runtime)
+        self.assertIn("legacy.RouteOpsApplication = RouteOpsRuntimeApplication", runtime)
         self.assertTrue((PLUGIN / "RouteOps.py").is_file())
 
 
