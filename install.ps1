@@ -68,7 +68,7 @@ if ($running.Count -gt 0) {
 $sourcePlugin = Join-Path $PSScriptRoot 'Plugin\RouteOps'
 $sourceRegistration = Join-Path $PSScriptRoot 'ActionFiles\V1\RouteOpsPanel.act'
 $requiredRelative = @(
-    'config.json', 'RouteOps.py', 'route_models.py', 'route_importer.py',
+    'config.json', 'RouteOps.py', 'routeops_runtime.py', 'route_models.py', 'route_importer.py',
     'trade_csv_importer.py', 'spansh_exobiology_importer.py',
     'exobiology_catalog.py', 'exobio_taxonomy.py', 'exobio_projection.py',
     'exobio_diagnostics.py', 'navigation_model.py',
