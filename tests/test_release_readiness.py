@@ -39,7 +39,15 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertIn("RouteOps rollback restored", rollback)
 
     def test_release_candidate_version(self) -> None:
-        self.assertEqual("0.6.0", (ROOT / "VERSION").read_text(encoding="utf-8-sig").strip())
+        self.assertEqual("0.6.1", (ROOT / "VERSION").read_text(encoding="utf-8-sig").strip())
+
+    def test_runtime_startup_uses_supported_ui_contract(self) -> None:
+        config = (ROOT / "Plugin" / "RouteOps" / "config.json").read_text(encoding="utf-8-sig")
+        runtime = (ROOT / "Plugin" / "RouteOps" / "routeops_runtime.py").read_text(encoding="utf-8-sig")
+        self.assertIn('"Start": "routeops_runtime.py"', config)
+        self.assertIn('VERSION = "0.6.1.0"', runtime)
+        self.assertNotIn('ui_set_word_wrap("HEADER"', runtime)
+        self.assertNotIn('ui_set_word_wrap("DETAIL"', runtime)
 
 
 if __name__ == "__main__":
