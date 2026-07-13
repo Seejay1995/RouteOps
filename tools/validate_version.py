@@ -22,6 +22,13 @@ def main() -> int:
             f"INSTALL Version={action_version}",
             f"RouteOps v{version} starting",
         ],
+        root / "Plugin" / "RouteOps" / "routeops_runtime.py": [
+            f'VERSION = "{action_version}"',
+            "client.send_start(VERSION",
+        ],
+        root / "Plugin" / "RouteOps" / "config.json": [
+            '"Start": "routeops_runtime.py"',
+        ],
         root / "install.ps1": [
             "Get-Content -LiteralPath (Join-Path $PSScriptRoot 'VERSION')",
         ],
