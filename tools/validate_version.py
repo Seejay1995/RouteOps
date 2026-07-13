@@ -24,13 +24,19 @@ def main() -> int:
         ],
         root / "Plugin" / "RouteOps" / "routeops_runtime.py": [
             f'VERSION = "{action_version}"',
-            "client.send_start(VERSION",
+            "legacy.VERSION = VERSION",
+            "legacy.RouteOpsApplication = RouteOpsRuntimeApplication",
+            "return legacy.main()",
         ],
         root / "Plugin" / "RouteOps" / "config.json": [
             '"Start": "routeops_runtime.py"',
         ],
+        root / "Plugin" / "RouteOps" / "RouteOps.py": [
+            "client.send_start(VERSION",
+        ],
         root / "install.ps1": [
             "Get-Content -LiteralPath (Join-Path $PSScriptRoot 'VERSION')",
+            "routeops_runtime.py",
         ],
     }
 
