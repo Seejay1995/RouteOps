@@ -9,6 +9,7 @@ from kernel_contracts import KernelCommand, KernelCommandType, KernelResult
 from route_compiler import RouteCompiler
 from route_importer import ImportResult
 from route_kernel import RouteKernel
+from route_library import RouteLibrary
 from route_models import Route
 from route_session import RouteSession, RouteSessionDefinition
 from runtime_health import RuntimeHealthReport, RuntimeHealthService
@@ -47,7 +48,7 @@ _UI_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
 
 
 class KernelRouteOpsApplication(legacy.RouteOpsApplication):
-    """EDDiscovery adapter using compiler, session, storage, health, and kernel boundaries."""
+    """EDDiscovery adapter using compiler, session, storage, health, library, and kernel boundaries."""
 
     def __init__(self, client: Any) -> None:
         super().__init__(client)
@@ -63,10 +64,26 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         )
         self.health_service = RuntimeHealthService(plugin_directory, self.session_storage)
         self.health_report: RuntimeHealthReport | None = None
+        self.route_library = RouteLibrary.from_config(client.config)
+        configured_search_roots = client.config.get("route_library_roots", [])
+        self.route_library_roots = [
+            Path(str(item)).expanduser()
+            for item in configured_search_roots
+            if str(item).strip()
+        ] if isinstance(configured_search_roots, list) else []
+        self.route_library_roots.extend([plugin_directory.parent.parent, plugin_directory])
 
     def start(self) -> None:
+        self.route_library.refresh_availability(self.route_library_roots)
+        self.route_library.save_to_config(self.client.config)
+        if self.route_path and not Path(self.route_path).is_file():
+            recovered = self._library_entry_for_path(self.route_path)
+            if recovered and recovered.available:
+                self.route_path = recovered.path
+                self.client.config["route_path"] = recovered.path
+                self.last_message = f"Recovered moved route: {recovered.name}."
         self.health_report = self.health_service.run(self.route_path)
-        if self.health_report.overall_status != "healthy":
+        if self.health_report.overall_status != "healthy" and not self.last_message.startswith("Recovered moved route"):
             self.last_message = self.health_report.summary
         super().start()
 
@@ -96,10 +113,12 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             definition = RouteSessionDefinition.from_route(self.compiled_route)
             self.session = RouteSession(definition, self.engine)
             self.kernel = RouteKernel(self.session)
+            self.route_library.record(self.engine.route, self.route_path)
             self.health_report = self.health_service.run(self.route_path)
             self.persist()
 
     def persist(self) -> None:
+        self.route_library.save_to_config(self.client.config)
         if self.session and self.route_path:
             try:
                 self.session_storage.save(self.route_path, self.session.snapshot())
@@ -115,11 +134,16 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             self.client.config["default_skip_reason"] = engine.route.settings.default_skip_reason
             return
         super().persist()
+        self.route_library.save_to_config(self.client.config)
 
     def _update_buttons(self) -> None:
         super()._update_buttons()
         self.client.ui_enable("HEALTH", True)
         self.client.ui_enable("HEALTHEXPORT", True)
+        self.client.ui_enable("ROUTELIBRARY", True)
+        recent = self.route_library.most_recent(available_only=True)
+        self.client.ui_enable("RECENTROUTE", recent is not None)
+        self.client.ui_set("RECENTROUTE", f"Recent: {recent.name}" if recent else "Recent Route")
 
     def run_health_check(self, export: bool = False) -> RuntimeHealthReport:
         self.health_report = self.health_service.run(self.route_path)
@@ -133,6 +157,31 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self.refresh_ui()
         self.client.ui_set_escape("DETAIL", self.health_report.render_text())
         return self.health_report
+
+    def show_route_library(self) -> None:
+        self.route_library.refresh_availability(self.route_library_roots)
+        self.route_library.save_to_config(self.client.config)
+        available = sum(entry.available for entry in self.route_library.entries)
+        self.last_message = f"Route library: {available}/{len(self.route_library.entries)} route(s) available."
+        self.refresh_ui()
+        self.client.ui_set_escape("DETAIL", self.route_library.render_text())
+
+    def open_recent_route(self) -> bool:
+        self.route_library.refresh_availability(self.route_library_roots)
+        entry = self.route_library.most_recent(available_only=True)
+        if entry is None:
+            self.last_message = "No available recent route was found. Use Load Route to add one."
+            self.refresh_ui()
+            return False
+        self.load_route(entry.path)
+        return self.engine is not None
+
+    def _library_entry_for_path(self, path: str):
+        normalized = str(Path(path).expanduser())
+        for entry in self.route_library.entries:
+            if entry.path == path or str(Path(entry.path).expanduser()) == normalized or entry.recovered_from == path:
+                return entry
+        return None
 
     def _accept_kernel_result(self, result: KernelResult) -> None:
         if not result.success:
@@ -154,6 +203,12 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             return
         if control == "HEALTHEXPORT":
             self.run_health_check(export=True)
+            return
+        if control == "ROUTELIBRARY":
+            self.show_route_library()
+            return
+        if control == "RECENTROUTE":
+            self.open_recent_route()
             return
         row_commands = {
             "DGV": KernelCommandType.SELECT_SYSTEM,
