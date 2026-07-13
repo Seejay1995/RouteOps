@@ -43,8 +43,9 @@ def main() -> int:
     engine = RouteEngine(route)
     session = RouteSession(RouteSessionDefinition.from_route(route), engine)
     snapshot = session.snapshot()
-    if not isinstance(snapshot, dict) or not snapshot.get("definition"):
-        print("Session snapshot was not produced.", file=sys.stderr)
+    definition = snapshot.get("routeDefinition") if isinstance(snapshot, dict) else None
+    if not isinstance(definition, dict) or definition.get("routeId") != route.id:
+        print("Session snapshot was not produced with the route definition.", file=sys.stderr)
         return 1
 
     library = RouteLibrary()
