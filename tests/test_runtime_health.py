@@ -81,7 +81,10 @@ class RuntimeHealthServiceTests(unittest.TestCase):
             self.assertEqual(STATUS_WARNING, route_check.status)
             self.assertIn("drive letters may have changed", route_check.action)
             self.assertTrue(report.storage_primary.endswith("missing.json.routeops.state.json"))
-            self.assertIn(str(plugin / "State"), report.storage_fallback)
+            self.assertTrue(
+                (plugin / "State").samefile(Path(report.storage_fallback).parent),
+                "Fallback state must resolve to the plugin-local State directory.",
+            )
 
     def test_export_writes_json_and_text_reports(self):
         with tempfile.TemporaryDirectory() as folder:
