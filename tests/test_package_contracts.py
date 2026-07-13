@@ -59,12 +59,15 @@ class PackageContractTests(unittest.TestCase):
         self.assertIn("DialogEntry controls,NAVCOPY", ui)
         self.assertIn("DialogEntry controls,SKIPPREVIEW", ui)
         self.assertIn("DialogEntry controls,SKIPCONFIRM", ui)
+        self.assertIn("DialogEntry controls,HEALTH", ui)
+        self.assertIn("DialogEntry controls,HEALTHEXPORT", ui)
 
     def test_application_boundaries_are_packaged(self):
         self.assertTrue((PLUGIN / "kernel_contracts.py").is_file())
         self.assertTrue((PLUGIN / "route_kernel.py").is_file())
         self.assertTrue((PLUGIN / "route_session.py").is_file())
         self.assertTrue((PLUGIN / "session_storage.py").is_file())
+        self.assertTrue((PLUGIN / "runtime_health.py").is_file())
         self.assertTrue((PLUGIN / "route_compiler.py").is_file())
         self.assertTrue((PLUGIN / "source_providers.py").is_file())
         self.assertTrue((PLUGIN / "routeops_kernel_app.py").is_file())

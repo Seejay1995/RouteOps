@@ -11,6 +11,7 @@ from route_importer import ImportResult
 from route_kernel import RouteKernel
 from route_models import Route
 from route_session import RouteSession, RouteSessionDefinition
+from runtime_health import RuntimeHealthReport, RuntimeHealthService
 from session_storage import FileSessionStorage, SessionStorage
 
 
@@ -46,7 +47,7 @@ _UI_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
 
 
 class KernelRouteOpsApplication(legacy.RouteOpsApplication):
-    """EDDiscovery adapter using compiler, session, storage, and kernel boundaries."""
+    """EDDiscovery adapter using compiler, session, storage, health, and kernel boundaries."""
 
     def __init__(self, client: Any) -> None:
         super().__init__(client)
@@ -55,10 +56,19 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self.session: RouteSession | None = None
         self.kernel: RouteKernel | None = None
         configured_root = client.config.get("session_state_root", "")
+        plugin_directory = Path(__file__).resolve().parent
         self.session_storage: SessionStorage = FileSessionStorage.for_plugin(
-            Path(__file__).resolve().parent,
+            plugin_directory,
             configured_root,
         )
+        self.health_service = RuntimeHealthService(plugin_directory, self.session_storage)
+        self.health_report: RuntimeHealthReport | None = None
+
+    def start(self) -> None:
+        self.health_report = self.health_service.run(self.route_path)
+        if self.health_report.overall_status != "healthy":
+            self.last_message = self.health_report.summary
+        super().start()
 
     def _compile_import_result(self, source: str) -> ImportResult:
         compiled = self.compiler.compile_source(source)
@@ -86,6 +96,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             definition = RouteSessionDefinition.from_route(self.compiled_route)
             self.session = RouteSession(definition, self.engine)
             self.kernel = RouteKernel(self.session)
+            self.health_report = self.health_service.run(self.route_path)
             self.persist()
 
     def persist(self) -> None:
@@ -105,6 +116,24 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             return
         super().persist()
 
+    def _update_buttons(self) -> None:
+        super()._update_buttons()
+        self.client.ui_enable("HEALTH", True)
+        self.client.ui_enable("HEALTHEXPORT", True)
+
+    def run_health_check(self, export: bool = False) -> RuntimeHealthReport:
+        self.health_report = self.health_service.run(self.route_path)
+        self.last_message = self.health_report.summary
+        if export:
+            try:
+                destination = self.health_service.export(self.health_report)
+                self.last_message = f"Runtime health exported: {destination}"
+            except OSError as exc:
+                self.last_message = f"Runtime health export failed: {exc}"
+        self.refresh_ui()
+        self.client.ui_set_escape("DETAIL", self.health_report.render_text())
+        return self.health_report
+
     def _accept_kernel_result(self, result: KernelResult) -> None:
         if not result.success:
             self.last_message = f"Kernel command failed: {result.error}"
@@ -120,6 +149,12 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
 
     def handle_ui_event(self, message: dict[str, Any]) -> None:
         control = str(message.get("control", ""))
+        if control == "HEALTH":
+            self.run_health_check(export=False)
+            return
+        if control == "HEALTHEXPORT":
+            self.run_health_check(export=True)
+            return
         row_commands = {
             "DGV": KernelCommandType.SELECT_SYSTEM,
             "BODIES": KernelCommandType.SELECT_BODY,
