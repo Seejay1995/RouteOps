@@ -5,8 +5,7 @@ from pathlib import Path
 
 import RouteOps as legacy
 from routeops_kernel_app import KernelRouteOpsApplication
-
-VERSION = "0.6.1.0"
+from routeops_version import VERSION
 
 
 class RouteOpsRuntimeApplication(KernelRouteOpsApplication):
@@ -29,7 +28,10 @@ class RouteOpsRuntimeApplication(KernelRouteOpsApplication):
         ):
             self.last_message = self.health_report.summary
 
-        for grid in ("DGV", "BODIES", "ORGANISMS"):
+        saved_layouts = self.client.config.get("column_layouts", {})
+        if not isinstance(saved_layouts, dict):
+            saved_layouts = {}
+        for grid in ("DGV", "BODIES", "ORGANISMS", "COLGRID", "CARGOGRID"):
             self.client.ui_set_dgv_setting(
                 grid,
                 column_reorder=True,
@@ -37,6 +39,18 @@ class RouteOpsRuntimeApplication(KernelRouteOpsApplication):
                 allow_header_visibility=True,
                 single_row_select=True,
             )
+            layout = saved_layouts.get(grid)
+            if layout:
+                self.client.ui_set_columns_setting(grid, layout)
+
+        # NOTE: the HEADER/DETAIL RichTextBox controls deliberately receive no setwordwrap
+        # command. That command only applies to DataGridViews; issuing it against a
+        # RichTextBox raises "Panel error setwordwrap missing data or unknown control".
+        # RichTextBoxes word-wrap by default, so no action is needed here. (This was the
+        # original v0.5 defect; the v0.6 runtime deliberately omits those calls.)
+
+        self.register_context_menus()
+        self.set_mode("exo")
 
         if self.route_path and Path(self.route_path).is_file():
             self.load_route(self.route_path, quiet=True)

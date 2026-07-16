@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import json
+import re
+import threading
+import time
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
 import RouteOps as legacy
+import spansh_client
 from kernel_contracts import KernelCommand, KernelCommandType, KernelResult
 from route_compiler import RouteCompiler
 from route_importer import ImportResult
@@ -47,6 +52,62 @@ _UI_COMMANDS: dict[str, tuple[str, dict[str, Any]]] = {
 }
 
 
+# Right-click context menus. Each entry is (tag, menu-text). Action tags reuse the
+# _UI_COMMANDS keys; "DIFF:<value>" and "REASON:<value>" tags carry a selectable
+# value routed to the SET_SELECTED_DIFFICULTY / SET_DEFAULT_SKIP_REASON commands.
+_ORGANISMS_MENU: list[tuple[str, str]] = [
+    ("TASKDONE", "Complete species"),
+    ("SKIPPREVIEW", "Preview skip"),
+    ("SKIPCONFIRM", "Confirm skip"),
+    ("SKIPCANCEL", "Cancel skip"),
+    ("SKIPUNDO", "Undo last skip"),
+    ("TASKREOPEN", "Reopen species"),
+    ("TASKINCLUDE", "Include species"),
+    ("TASKEXCLUDE", "Exclude species"),
+    ("TASKDEFAULT", "Reset species filter"),
+    ("DIFF:easy", "Difficulty: Easy"),
+    ("DIFF:normal", "Difficulty: Normal"),
+    ("DIFF:hard", "Difficulty: Hard"),
+    ("DIFF:very-hard", "Difficulty: Very hard"),
+    ("DIFF:unknown", "Difficulty: Unknown"),
+    ("REASON:too-difficult", "Skip reason: Too difficult"),
+    ("REASON:low-value", "Skip reason: Low value"),
+    ("REASON:terrain", "Skip reason: Terrain"),
+    ("REASON:too-far", "Skip reason: Too far"),
+    ("REASON:already-sampled", "Skip reason: Already sampled"),
+    ("REASON:time-limit", "Skip reason: Time limit"),
+    ("REASON:preference", "Skip reason: Preference"),
+    ("REASON:other", "Skip reason: Other"),
+]
+_BODIES_MENU: list[tuple[str, str]] = [
+    ("CHOOSETARGET", "Choose as target"),
+    ("FINISHBODY", "Finish body"),
+    ("SKIPBODY", "Skip body"),
+    ("REOPENBODY", "Reopen body"),
+    ("BODYINCLUDE", "Include body"),
+    ("BODYEXCLUDE", "Exclude body"),
+    ("BODYDEFAULT", "Reset body filter"),
+    ("RESETSTOP", "Reset body"),
+]
+
+# Controls shown only in Exobiology mode vs only in Colonisation mode. The mode
+# switcher (MODEBAR) toggles these via ui_visible so each modality gets the whole
+# panel (EDDiscovery ZMQ panels have no native tabs). MODEBAR itself is always shown.
+_EXO_VIEW = ("DGV", "BODIES", "ORGANISMS", "HEADER", "DETAIL", "GENBAR", "TOOLBAR")
+_COLONY_VIEW = ("COLBAR", "COLGRID")
+_CARGO_VIEW = ("CARGOBAR", "CARGOGRID")
+# The triage/body button bars are retired in favour of the grid right-click menus,
+# and the individual route/nav/diagnostics buttons are folded into the toolbar
+# dropdowns (ROUTEMENU/NAVMENU/DIAGMENU). Keep the controls defined (so button-state
+# code keeps working) but never show them.
+_ALWAYS_HIDDEN = (
+    "TRIAGEBAR", "BODYBAR",
+    "LOAD", "RECENTROUTE", "ROUTELIBRARY", "RELOAD",
+    "NAVCOPY", "PREVTARGET", "NEXTTARGET",
+    "HEALTH", "HEALTHEXPORT", "DEBUGBUNDLE",
+)
+
+
 class KernelRouteOpsApplication(legacy.RouteOpsApplication):
     """EDDiscovery adapter using compiler, session, storage, health, library, and kernel boundaries."""
 
@@ -72,6 +133,37 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             if str(item).strip()
         ] if isinstance(configured_search_roots, list) else []
         self.route_library_roots.extend([plugin_directory.parent.parent, plugin_directory])
+        # Spansh generation (worker thread -> main-loop pump).
+        self._spansh_thread: threading.Thread | None = None
+        self._spansh_result: str | None = None
+        self._spansh_error: str | None = None
+        self._spansh_status: str = ""
+        self._spansh_status_shown: str = ""
+        # Colonisation supply sourcing (worker thread -> main-loop pump).
+        self._colony_thread: threading.Thread | None = None
+        self._colony_result: tuple[dict[str, Any], list[dict[str, Any]]] | None = None
+        self._colony_error: str | None = None
+        self._colony_status: str = ""
+        self._colony_status_shown: str = ""
+        # Cargo (trade) routing (worker thread -> main-loop pump).
+        self._cargo_thread: threading.Thread | None = None
+        self._cargo_result: dict[str, Any] | None = None
+        self._cargo_error: str | None = None
+        self._cargo_status: str = ""
+        self._cargo_status_shown: str = ""
+        self._cargo_prefilled = False
+        self._cargo_pad_large = True
+        self._context_menus_registered = False
+        self.mode = "exo"
+        # Live telemetry state (populated from EDDiscovery edduievent/newtarget pushes).
+        self.telemetry_line = ""
+        self._telemetry_displayed = ""
+        self._telemetry_last_refresh = 0.0
+        self._tele_body: str | None = None
+        self._tele_dest: str | None = None
+        self._tele_edd_target: str | None = None
+        self._tele_fuel: float | None = None
+        self._tele_cargo: int | None = None
 
     def start(self) -> None:
         self.route_library.refresh_availability(self.route_library_roots)
@@ -196,8 +288,74 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self._accept_kernel_result(self.kernel.execute(KernelCommand(command_type, payload or {})))
         return True
 
+    @staticmethod
+    def _is_menu_tag(tag: Any) -> bool:
+        return isinstance(tag, str) and (
+            tag in _UI_COMMANDS or tag.startswith("DIFF:") or tag.startswith("REASON:")
+        )
+
+    def _handle_context_menu(self, control: str, tag: str, row: int | None) -> None:
+        # Select the right-clicked row first so the command acts on it.
+        if row is not None and row >= 0:
+            select = KernelCommandType.SELECT_BODY if control == "BODIES" else KernelCommandType.SELECT_TASK
+            self._execute(select, {"index": row})
+        if tag.startswith("DIFF:"):
+            self._execute(KernelCommandType.SET_SELECTED_DIFFICULTY, {"value": tag[len("DIFF:"):]})
+            return
+        if tag.startswith("REASON:"):
+            self._execute(KernelCommandType.SET_DEFAULT_SKIP_REASON, {"value": tag[len("REASON:"):]})
+            return
+        # Finish/Skip act on the *current* body, so make the selected row current first.
+        if control == "BODIES" and tag in ("FINISHBODY", "SKIPBODY"):
+            self._execute(KernelCommandType.CHOOSE_SELECTED_BODY, {})
+        command = _UI_COMMANDS.get(tag)
+        if command:
+            self._execute(command[0], command[1])
+
     def handle_ui_event(self, message: dict[str, Any]) -> None:
         control = str(message.get("control", ""))
+        # Toolbar dropdown menus: a Button-type item fires DropDownButtonPressed with
+        # data=<tag>. Re-dispatch the tag as if that toolbar button was clicked.
+        event = str(message.get("event", ""))
+        if event == "DropDownButtonPressed":
+            tag = str(message.get("data") or "")
+            try:
+                self.client.ui_close_drop_down_button()
+            except Exception:  # noqa: BLE001
+                pass
+            if tag:
+                self.handle_ui_event({"control": tag})
+            return
+        if event == "DropDownButtonClosed":
+            return
+        if control == "GENERATE":
+            self._start_spansh_generation()
+            return
+        if control == "COLONISE":
+            self._start_colonisation()
+            return
+        if control == "CARGO_GO":
+            self._start_cargo()
+            return
+        if control == "CARGOPAD":
+            self._cargo_pad_large = not self._cargo_pad_large
+            self.client.ui_set(
+                "CARGOPAD", "Pad: Large only" if self._cargo_pad_large else "Pad: Any pad"
+            )
+            return
+        if control == "MODE_EXO":
+            self.set_mode("exo")
+            return
+        if control == "MODE_COLONY":
+            self.set_mode("colony")
+            return
+        if control == "MODE_CARGO":
+            self.set_mode("cargo")
+            return
+        tag = message.get("value")
+        if control in ("BODIES", "ORGANISMS") and self._is_menu_tag(tag):
+            self._handle_context_menu(control, tag, self._extract_row_index(message))
+            return
         if control == "HEALTH":
             self.run_health_check(export=False)
             return
@@ -226,16 +384,384 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             return
         super().handle_ui_event(message)
 
+    def _handle_telemetry(self, message: dict[str, Any]) -> None:
+        """Consume an EDDiscovery UIOverallStatus push and update the live status line."""
+        if message.get("type") != "UIOverallStatus":
+            return
+        event = message.get("event")
+        if not isinstance(event, dict):
+            return
+        prev_body, prev_dest = self._tele_body, self._tele_dest
+        body = event.get("BodyName")
+        self._tele_body = body.strip() if isinstance(body, str) and body.strip() else None
+        dest = event.get("DestinationName")
+        self._tele_dest = dest.strip() if isinstance(dest, str) and dest.strip() else None
+        fuel = event.get("Fuel")
+        self._tele_fuel = float(fuel) if isinstance(fuel, (int, float)) and fuel > 0 else None
+        cargo = event.get("Cargo")
+        self._tele_cargo = int(cargo) if isinstance(cargo, bool) is False and isinstance(cargo, int) and cargo >= 0 else None
+        important = (self._tele_body != prev_body) or (self._tele_dest != prev_dest)
+        self._refresh_telemetry(important=important)
+
+    def _handle_new_target(self, message: dict[str, Any]) -> None:
+        """Consume an EDDiscovery newtarget push (user changed the EDD target system)."""
+        system = message.get("system")
+        self._tele_edd_target = system.strip() if isinstance(system, str) and system.strip() else None
+        self._refresh_telemetry(important=True)
+
+    def _compose_telemetry(self) -> str:
+        parts: list[str] = []
+        if self._tele_body:
+            parts.append(f"AT {self._tele_body}")
+        if self._tele_dest:
+            parts.append(f"NAV {self._tele_dest}")
+        if self._tele_edd_target:
+            parts.append(f"EDD-TGT {self._tele_edd_target}")
+        if self._tele_fuel is not None:
+            parts.append(f"FUEL {self._tele_fuel:.1f}t")
+        if self._tele_cargo is not None:
+            parts.append(f"CARGO {self._tele_cargo}t")
+        return ("LIVE: " + "  |  ".join(parts)) if parts else ""
+
+    def _refresh_telemetry(self, important: bool) -> None:
+        line = self._compose_telemetry()
+        self.telemetry_line = line
+        if not self.engine:
+            return
+        if line == self._telemetry_displayed:
+            return
+        now = time.perf_counter()
+        if important or (now - self._telemetry_last_refresh) >= 1.5:
+            self._telemetry_last_refresh = now
+            self._telemetry_displayed = line
+            self.refresh_ui()
+
+    def _capture_column_layouts(self) -> None:
+        """Persist each grid's user column layout into config so it survives restarts."""
+        layouts: dict[str, Any] = {}
+        for grid in ("DGV", "BODIES", "ORGANISMS"):
+            try:
+                settings = self.client.ui_get_columns_setting(grid, timeout_ms=2000)
+            except Exception:
+                settings = None
+            if settings:
+                layouts[grid] = settings
+        if layouts:
+            self.client.config["column_layouts"] = layouts
+
+    # --- Mode switching (in-panel "tabs") -----------------------------------
+    def set_mode(self, mode: str) -> None:
+        """Swap the whole panel between the Exobiology, Colonisation and Cargo views."""
+        if mode not in ("exo", "colony", "cargo"):
+            mode = "exo"
+        self.mode = mode
+        for name in _EXO_VIEW:
+            self.client.ui_visible(name, mode == "exo")
+        for name in _COLONY_VIEW:
+            self.client.ui_visible(name, mode == "colony")
+        for name in _CARGO_VIEW:
+            self.client.ui_visible(name, mode == "cargo")
+        for name in _ALWAYS_HIDDEN:
+            self.client.ui_visible(name, False)
+        self.client.ui_set("MODE_EXO", "[ Exobiology ]" if mode == "exo" else "Exobiology")
+        self.client.ui_set("MODE_COLONY", "[ Colonisation ]" if mode == "colony" else "Colonisation")
+        self.client.ui_set("MODE_CARGO", "[ Cargo ]" if mode == "cargo" else "Cargo")
+        if mode == "cargo":
+            self._prefill_cargo()
+
+    def _prefill_cargo(self) -> None:
+        """Fill the cargo start SYSTEM and cargo capacity from the journal (once).
+
+        The station is left blank on purpose: cargo generation finds the nearest
+        real market itself (routing there for the first buy if needed).
+        """
+        if self._cargo_prefilled:
+            return
+        try:
+            import colonisation as col
+
+            if not str(self.client.ui_get("CARGOSYS") or "").strip():
+                system = col.read_current_system()
+                if system:
+                    self.client.ui_set("CARGOSYS", system)
+            capacity = col.read_cargo_capacity()
+            if capacity:
+                self.client.ui_set("CARGOCARGO", str(capacity))
+            self._cargo_prefilled = True
+        except Exception:  # noqa: BLE001 - prefill is best-effort
+            pass
+
+    # --- Right-click context menus ------------------------------------------
+    def register_context_menus(self) -> None:
+        """Attach the per-row right-click menus to the BODIES/ORGANISMS grids."""
+        if self._context_menus_registered:
+            return
+        self.client.ui_right_click_menu(
+            "ORGANISMS", [tag for tag, _ in _ORGANISMS_MENU], [text for _, text in _ORGANISMS_MENU]
+        )
+        self.client.ui_right_click_menu(
+            "BODIES", [tag for tag, _ in _BODIES_MENU], [text for _, text in _BODIES_MENU]
+        )
+        self._context_menus_registered = True
+
+    # --- Spansh route generation (threaded) ---------------------------------
+    def _start_spansh_generation(self) -> None:
+        thread = self._spansh_thread
+        if thread is not None and thread.is_alive():
+            self.client.ui_set("GENSTATUS", "Spansh generation already running...")
+            return
+        from_system = str(self.client.ui_get("GENFROM") or "").strip()
+        if not from_system:
+            self.client.ui_set("GENSTATUS", "Enter a start system to generate.")
+            return
+        params = self._read_spansh_params(from_system)
+        self._spansh_result = None
+        self._spansh_error = None
+        self._spansh_status = "Contacting Spansh..."
+        self._spansh_status_shown = ""
+        self.client.ui_set("GENSTATUS", self._spansh_status)
+        self.client.ui_enable("GENERATE", False)
+
+        def worker() -> None:
+            try:
+                route = spansh_client.generate_exobiology(on_progress=self._set_spansh_status, **params)
+                self._spansh_result = self._save_generated_route(route)
+            except Exception as exc:  # noqa: BLE001 - surfaced to the panel via pump
+                self._spansh_error = str(exc)
+
+        self._spansh_thread = threading.Thread(target=worker, name="routeops-spansh", daemon=True)
+        self._spansh_thread.start()
+
+    def _read_spansh_params(self, from_system: str) -> dict[str, Any]:
+        def number(control: str, default: Any) -> Any:
+            raw = str(self.client.ui_get(control) or "").strip().replace(",", "")
+            if not raw:
+                return default
+            try:
+                return type(default)(float(raw))
+            except (TypeError, ValueError):
+                return default
+
+        return {
+            "from_system": from_system,
+            "jump_range": number("GENRANGE", 50.0),
+            "radius": number("GENRADIUS", 100.0),
+            "min_value": number("GENMINVAL", 1_000_000),
+            "max_results": number("GENMAX", 50),
+            "loop": False,
+            "use_mapping_value": True,
+            "name": f"Spansh Exobiology from {from_system}",
+        }
+
+    def _set_spansh_status(self, message: str) -> None:
+        # Runs on the worker thread: only store the string (the ZMQ socket is
+        # single-threaded). The main-loop pump pushes it to the control.
+        self._spansh_status = message
+
+    def _save_generated_route(self, route: dict[str, Any]) -> str:
+        folder = Path(__file__).resolve().parent / "GeneratedRoutes"
+        folder.mkdir(parents=True, exist_ok=True)
+        stem = re.sub(r"[^A-Za-z0-9._-]+", "_", str(route.get("name") or "spansh_route")).strip("_")
+        path = folder / f"{(stem or 'spansh_route')[:80]}.json"
+        path.write_text(json.dumps(route, indent=2), encoding="utf-8")
+        return str(path)
+
+    # --- Colonisation supply sourcing (threaded) ----------------------------
+    def _start_colonisation(self) -> None:
+        thread = self._colony_thread
+        if thread is not None and thread.is_alive():
+            self.client.ui_set("COLSTATUS", "Colony sourcing already running...")
+            return
+        cargo = self._read_colony_cargo()
+        large_pad_only = str(self.client.ui_get("COLPAD") or "large").strip().lower() != "any"
+        self._colony_result = None
+        self._colony_error = None
+        self._colony_status = "Reading colony needs from journal..."
+        self._colony_status_shown = ""
+        self.client.ui_set("COLSTATUS", self._colony_status)
+        self.client.ui_enable("COLONISE", False)
+
+        def worker() -> None:
+            try:
+                import colonisation as col
+
+                construction = col.read_latest_construction()
+                if not construction or not construction.get("needs"):
+                    self._colony_error = "No outstanding colony construction found in your journal."
+                    return
+                board = col.build_sourcing_board(
+                    construction,
+                    cargo_capacity=cargo,
+                    large_pad_only=large_pad_only,
+                    on_progress=self._set_colony_status,
+                )
+                self._colony_result = (construction, board)
+            except Exception as exc:  # noqa: BLE001 - surfaced to the panel via pump
+                self._colony_error = str(exc)
+
+        self._colony_thread = threading.Thread(target=worker, name="routeops-colony", daemon=True)
+        self._colony_thread.start()
+
+    def _read_colony_cargo(self) -> int:
+        return self._read_int("COLCARGO", 720)
+
+    def _read_int(self, control: str, default: int) -> int:
+        raw = str(self.client.ui_get(control) or "").strip().replace(",", "")
+        if not raw:
+            return default
+        try:
+            return max(1, int(float(raw)))
+        except (TypeError, ValueError):
+            return default
+
+    def _set_colony_status(self, message: str) -> None:
+        # Worker thread: store only; the main-loop pump pushes it to the control.
+        self._colony_status = message
+
+    # --- Cargo (trade) routing (threaded) -----------------------------------
+    def _start_cargo(self) -> None:
+        thread = self._cargo_thread
+        if thread is not None and thread.is_alive():
+            self.client.ui_set("CARGOSTATUS", "Cargo routing already running...")
+            return
+        system = str(self.client.ui_get("CARGOSYS") or "").strip()
+        station = str(self.client.ui_get("CARGOSTN") or "").strip()
+        if not system:
+            self.client.ui_set("CARGOSTATUS", "Enter a start system (station optional).")
+            return
+        cargo = self._read_int("CARGOCARGO", 720)
+        max_hops = self._read_int("CARGOHOPS", 5)
+        large_pad_only = self._cargo_pad_large
+        self._cargo_result = None
+        self._cargo_error = None
+        self._cargo_status = "Contacting Spansh..."
+        self._cargo_status_shown = ""
+        self.client.ui_set("CARGOSTATUS", self._cargo_status)
+        self.client.ui_enable("CARGO_GO", False)
+
+        def worker() -> None:
+            try:
+                route = spansh_client.generate_trade(
+                    system=system,
+                    station=station,
+                    cargo=cargo,
+                    max_hops=max_hops,
+                    large_pad_only=large_pad_only,
+                    on_progress=self._set_cargo_status,
+                )
+                self._cargo_result = route
+            except Exception as exc:  # noqa: BLE001 - surfaced to the panel via pump
+                self._cargo_error = str(exc)
+
+        self._cargo_thread = threading.Thread(target=worker, name="routeops-cargo", daemon=True)
+        self._cargo_thread.start()
+
+    def _set_cargo_status(self, message: str) -> None:
+        self._cargo_status = message
+
+    def pump_background(self) -> None:
+        """Called every main-loop iteration; drains worker-thread results safely."""
+        self._pump_spansh()
+        self._pump_colony()
+        self._pump_cargo()
+
+    def _pump_spansh(self) -> None:
+        status = self._spansh_status
+        if status and status != self._spansh_status_shown:
+            self._spansh_status_shown = status
+            self.client.ui_set("GENSTATUS", status)
+        if self._spansh_error:
+            error = self._spansh_error
+            self._spansh_error = None
+            self.client.ui_enable("GENERATE", True)
+            self.client.ui_set("GENSTATUS", f"Failed: {error}")
+            self.last_message = f"Spansh generation failed: {error}"
+            self.refresh_ui()
+            return
+        if self._spansh_result:
+            path = self._spansh_result
+            self._spansh_result = None
+            self.client.ui_enable("GENERATE", True)
+            self.client.ui_set("GENSTATUS", "Route generated. Loading...")
+            self.load_route(path)
+
+    def _pump_colony(self) -> None:
+        status = self._colony_status
+        if status and status != self._colony_status_shown:
+            self._colony_status_shown = status
+            self.client.ui_set("COLSTATUS", status)
+        if self._colony_error:
+            error = self._colony_error
+            self._colony_error = None
+            self.client.ui_enable("COLONISE", True)
+            self.client.ui_set("COLSTATUS", f"Failed: {error}")
+            return
+        if self._colony_result:
+            construction, board = self._colony_result
+            self._colony_result = None
+            self.client.ui_enable("COLONISE", True)
+            sourced = sum(1 for row in board if row.get("sources"))
+            system = construction.get("system") or "colony"
+            self.client.ui_set("COLSTATUS", f"{system}: {sourced}/{len(board)} sourced.")
+            import colonisation as col
+
+            self.set_mode("colony")
+            self.client.ui_suspend("COLGRID")
+            self.client.ui_clear("COLGRID")
+            self.client.ui_add_set_rows("COLGRID", col.board_to_rows(board))
+            self.client.ui_resume("COLGRID")
+
+    def _pump_cargo(self) -> None:
+        status = self._cargo_status
+        if status and status != self._cargo_status_shown:
+            self._cargo_status_shown = status
+            self.client.ui_set("CARGOSTATUS", status)
+        if self._cargo_error:
+            error = self._cargo_error
+            self._cargo_error = None
+            self.client.ui_enable("CARGO_GO", True)
+            self.client.ui_set("CARGOSTATUS", f"Failed: {error}")
+            return
+        if self._cargo_result:
+            result = self._cargo_result
+            self._cargo_result = None
+            self.client.ui_enable("CARGO_GO", True)
+            import cargo as cargo_mod
+
+            hops = result.get("hops", [])
+            profit = cargo_mod.total_profit(result)
+            start = result.get("start_station") or result.get("start_system") or ""
+            self.client.ui_set(
+                "CARGOSTATUS", f"From {start}: {len(hops)} hops  |  {profit:,} CR profit"
+            )
+            self.set_mode("cargo")
+            self.client.ui_suspend("CARGOGRID")
+            self.client.ui_clear("CARGOGRID")
+            self.client.ui_add_set_rows("CARGOGRID", cargo_mod.route_to_rows(result))
+            self.client.ui_resume("CARGOGRID")
+
     def handle_message(self, message: dict[str, Any]) -> bool:
         response_type = message.get("responsetype")
-        if response_type in {"terminate", "uievent"}:
+        if response_type == "terminate":
+            self._capture_column_layouts()
             return super().handle_message(message)
+        if response_type == "uievent":
+            return super().handle_message(message)
+        if response_type == "edduievent":
+            self._handle_telemetry(message)
+            return True
+        if response_type == "newtarget":
+            self._handle_new_target(message)
+            return True
         if response_type == "journalpush" and self.kernel:
             entry = message.get("journalEntry")
             if isinstance(entry, dict):
-                result = self.kernel.handle_journal(entry)
-                if result.actions:
-                    self._accept_kernel_result(result)
+                try:
+                    result = self.kernel.handle_journal(entry)
+                    if result.actions:
+                        self._accept_kernel_result(result)
+                except Exception as exc:  # noqa: BLE001 - one bad event must not kill the panel
+                    print(f"RouteOps: skipped journal event {entry.get('event')!r}: {exc}")
             return True
         if response_type in {"historypush", "historyload"} and self.kernel:
             entries = message.get("journalEntries", message.get("entries", message.get("history", [])))
@@ -245,7 +771,10 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             if isinstance(entries, list):
                 for entry in entries:
                     if isinstance(entry, dict):
-                        actions.extend(self.kernel.hydrate_journal_knowledge(entry).actions)
+                        try:
+                            actions.extend(self.kernel.hydrate_journal_knowledge(entry).actions)
+                        except Exception as exc:  # noqa: BLE001 - skip bad entries, keep loading
+                            print(f"RouteOps: skipped history event {entry.get('event')!r}: {exc}")
             if actions:
                 self.last_message = f"Hydrated body and species manifests from {len(entries)} historical journal event(s)."
                 self.persist()

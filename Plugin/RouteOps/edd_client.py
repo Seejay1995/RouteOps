@@ -155,6 +155,44 @@ class EDDClient:
     def ui_visible(self, control: str, state: bool) -> None:
         self._send({"requesttype": "uivisible", "control": control, "state": state})
 
+    def ui_add_text(self, control: str, value: str) -> None:
+        self._send({"requesttype": "uiaddtext", "control": control, "value": value})
+
+    def ui_add(self, definitions: list[str]) -> None:
+        self._send({"requesttype": "uiadd", "controldefinitions": definitions})
+
+    def ui_remove(self, names: list[str]) -> None:
+        self._send({"requesttype": "uiremove", "controllist": names})
+
+    def ui_position(self, control: str, x: int, y: int) -> None:
+        self._send({"requesttype": "uiposition", "control": control, "x": x, "y": y})
+
+    def ui_size(self, control: str, width: int, height: int) -> None:
+        self._send({"requesttype": "uisize", "control": control, "width": width, "height": height})
+
+    def ui_right_click_menu(self, control: str, tags: list[str], text: list[str]) -> None:
+        self._send(
+            {"requesttype": "uirightclickmenu", "control": control, "tags": tags, "text": text}
+        )
+
+    def ui_close_drop_down_button(self) -> None:
+        self._send({"requesttype": "uiclosedropdownbutton"})
+
+    def ui_get(self, control: str, timeout_ms: int = DEFAULT_TIMEOUT_MS) -> Any:
+        self._send({"requesttype": "uiget", "control": control})
+        response = self.poll_for_field("uiget", "control", control, timeout_ms)
+        return response.get("value") if response else None
+
+    def ui_get_columns_setting(self, control: str, timeout_ms: int = DEFAULT_TIMEOUT_MS) -> Any:
+        self._send({"requesttype": "uigetcolumnssetting", "control": control})
+        response = self.poll_for_field("uigetcolumnssetting", "control", control, timeout_ms)
+        return response.get("settings") if response else None
+
+    def ui_set_columns_setting(self, control: str, settings: Any) -> None:
+        self._send(
+            {"requesttype": "uisetcolumnssetting", "control": control, "settings": settings}
+        )
+
     def message_box(
         self,
         message: str,

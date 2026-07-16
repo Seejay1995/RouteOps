@@ -111,7 +111,7 @@ def _integer(value: Any, default: int = 1) -> int:
 
 
 def _optional_integer(value: Any) -> int | None:
-    if value in {None, ""}:
+    if value in (None, ""):
         return None
     try:
         return int(float(value))
@@ -120,7 +120,7 @@ def _optional_integer(value: Any) -> int | None:
 
 
 def _optional_float(value: Any) -> float | None:
-    if value in {None, ""}:
+    if value in (None, ""):
         return None
     try:
         return float(str(value).replace(",", "").strip())

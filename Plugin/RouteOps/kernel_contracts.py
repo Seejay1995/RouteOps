@@ -32,6 +32,8 @@ class KernelCommandType:
     TOGGLE_ROUTE_VIEW = "toggle-route-view"
     SET_SELECTED_TASK_INCLUSION = "set-selected-task-inclusion"
     SET_SELECTED_BODY_INCLUSION = "set-selected-body-inclusion"
+    SET_SELECTED_DIFFICULTY = "set-selected-difficulty"
+    SET_DEFAULT_SKIP_REASON = "set-default-skip-reason"
 
     ALL = frozenset(
         {
@@ -43,6 +45,7 @@ class KernelCommandType:
             REOPEN_SELECTED_TASK, RESET_STOP, ENABLE_EXOBIOLOGY_MODE,
             TOGGLE_GENUS_FILTER, TOGGLE_SHOW_EXCLUDED, TOGGLE_ROUTE_VIEW,
             SET_SELECTED_TASK_INCLUSION, SET_SELECTED_BODY_INCLUSION,
+            SET_SELECTED_DIFFICULTY, SET_DEFAULT_SKIP_REASON,
         }
     )
 

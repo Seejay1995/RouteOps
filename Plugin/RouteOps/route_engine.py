@@ -236,6 +236,27 @@ class RouteEngine:
             "message": f"{task.display_organism or task.label} difficulty: {task.search_difficulty}.",
         }]
 
+    def set_selected_difficulty(self, value: str) -> list[dict[str, Any]]:
+        task = self.selected_task
+        if not task:
+            return [{"type": "message", "message": "No organism is selected."}]
+        if value not in DIFFICULTIES:
+            return [{"type": "message", "message": f"Unknown difficulty: {value}."}]
+        task.search_difficulty = value
+        return [{
+            "type": "message",
+            "message": f"{task.display_organism or task.label} difficulty: {value}.",
+        }]
+
+    def set_default_skip_reason(self, value: str) -> list[dict[str, Any]]:
+        if value not in SKIP_REASONS:
+            return [{"type": "message", "message": f"Unknown skip reason: {value}."}]
+        self.route.settings.default_skip_reason = value
+        return [{
+            "type": "message",
+            "message": f"Skip reason: {SKIP_REASON_LABELS[value]}.",
+        }]
+
     def visible_tasks(self, stop: RouteStop | None = None) -> list[RouteTask]:
         stop = stop or self.selected_stop
         if not stop:
@@ -1947,7 +1968,7 @@ class RouteEngine:
         location = state.get("currentLocation", {})
         if isinstance(location, dict):
             for key in self.current_location:
-                if key in location and location.get(key) not in {None, ""}:
+                if key in location and location.get(key) not in (None, ""):
                     self.current_location[key] = location[key]
         ledger = state.get("salesLedger", [])
         if isinstance(ledger, list):
@@ -2123,7 +2144,7 @@ class RouteEngine:
 
 
 def _safe_optional_int(value: Any, default: int | None = None) -> int | None:
-    if value in {None, ""}:
+    if value in (None, ""):
         return default
     try:
         return int(value)
@@ -2132,7 +2153,7 @@ def _safe_optional_int(value: Any, default: int | None = None) -> int | None:
 
 
 def _safe_optional_float(value: Any, default: float | None = None) -> float | None:
-    if value in {None, ""}:
+    if value in (None, ""):
         return default
     try:
         return float(value)

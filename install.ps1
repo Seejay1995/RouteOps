@@ -78,6 +78,7 @@ $requiredRelative = @(
     'session_storage.py', 'runtime_health.py', 'route_library.py',
     'route_session.py', 'kernel_contracts.py', 'route_kernel.py',
     'route_compiler.py', 'source_providers.py', 'routeops_kernel_app.py',
+    'routeops_version.py', 'spansh_client.py', 'colonisation.py', 'cargo.py',
     'ui_renderer.py', 'checkmodules.py', 'UIInterface.act', 'routeops.png'
 )
 

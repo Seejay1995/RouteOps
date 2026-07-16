@@ -4,7 +4,7 @@ ENABLED True
 
 INSTALL LongDescription="RouteOps navigation-first EDDiscovery operations panel UI"
 INSTALL ShortDescription="RouteOps UI"
-INSTALL Version=0.5.0.0
+INSTALL Version=0.7.0.0
 INSTALL MinEDVersion=19.0.0.0
 INSTALL Location=.
 
@@ -12,11 +12,18 @@ EVENT onStartup, onStartup, "", Condition AlwaysTrue
 
 PROGRAM onStartup
 
+DialogEntry controls,MODEBAR,flowpanel,"",0,0,1,32,"Switch RouteOps mode: Exobiology routing or Colonisation supply","",Top,"","",Horizontal
+DialogEntry controls,MODE_EXO,Button,"[ Exobiology ]",0,0,110,28,"Exobiology routing: load or generate routes and triage species","MODEBAR"
+DialogEntry controls,MODE_COLONY,Button,"Colonisation",0,0,110,28,"Colonisation supply: source your colony construction commodities from the journal","MODEBAR"
+DialogEntry controls,MODE_CARGO,Button,"Cargo",0,0,90,28,"Cargo/trade: generate a profit-optimised hauling route from Spansh","MODEBAR"
+
 DialogEntry controls,DGV,dgv,"",10,10,10,10,"System navigation queue","",Fill,"","",0;(text,"#",38,Numeric),(text,"System",205),(text,"Bodies",55),(text,"Active",55),(text,"Targets",75),(text,"Active Value",105),(text,"Manifest",85),(text,"State",90)
+DialogEntry controls,COLGRID,dgv,"",10,10,10,10,"Colony commodity sourcing board (right side scrolls)","",Fill,"","",0;(text,"Commodity",150),(text,"Need",70,Numeric),(text,"Trips",50,Numeric),(text,"Best Source",240),(text,"Dist ly",60,Numeric),(text,"Buy CR",72,Numeric),(text,"Supply",90,Numeric)
+DialogEntry controls,CARGOGRID,dgv,"",10,10,10,10,"Cargo trade route hops","",Fill,"","",0;(text,"Hop",42,Numeric),(text,"Commodity",160),(text,"From",200),(text,"To",200),(text,"Dist ly",60,Numeric),(text,"Buy CR",72,Numeric),(text,"Sell CR",72,Numeric),(text,"Profit",90,Numeric)
 
 DialogEntry controls,BODIES,dgv,"",0,0,1,172,"Selected system body manifest","",Bottom,"","",0;(text,"Order",48,Numeric),(text,"Body",210),(text,"Distance",82),(text,"Bio",45),(text,"Targets",120),(text,"Scans",62),(text,"Active Value",105),(text,"State",92)
 DialogEntry controls,ORGANISMS,dgv,"",0,0,1,190,"Selected body species triage","",Bottom,"","",0;(text,"Decision",68),(text,"Certainty",88),(text,"Species",210),(text,"Variant",145),(text,"Scans",55),(text,"Value",105),(text,"Difficulty",82),(text,"Source",85)
-DialogEntry controls,DETAIL,richtextbox,"",0,0,1,220,"Selected body and species details","",Bottom,"",""
+DialogEntry controls,DETAIL,richtextbox,"",0,0,1,220,"Selected body, route library, and runtime health details","",Bottom,"",""
 
 DialogEntry controls,TRIAGEBAR,flowpanel,"",0,0,1,34,"Species triage controls","",Bottom,"","",Horizontal
 DialogEntry controls,TASKDONE,Button,"Complete Species",0,0,102,28,"Complete the selected species on the selected body","TRIAGEBAR"
@@ -41,8 +48,13 @@ DialogEntry controls,BODYEXCLUDE,Button,"Exclude Body",0,0,82,28,"Manually exclu
 DialogEntry controls,BODYDEFAULT,Button,"Reset Body Filter",0,0,104,28,"Remove the inspected body inclusion override","BODYBAR"
 DialogEntry controls,RESETSTOP,Button,"Reset Body",0,0,72,28,"Reset inspected body and species progress","BODYBAR"
 
-DialogEntry controls,TOOLBAR,flowpanel,"",0,0,1,34,"Navigation controls","",Top,"","",Horizontal
+DialogEntry controls,TOOLBAR,flowpanel,"",0,0,1,34,"Navigation, route library, and diagnostics controls","",Top,"","",Horizontal
+DialogEntry controls,ROUTEMENU,dropdownbutton,"Route",0,0,66,28,"Route actions","TOOLBAR","","","","",1,1,0,0,24,24;("LOAD","Load Route",,,Button),("RECENTROUTE","Recent Route",,,Button),("ROUTELIBRARY","Route Library",,,Button),("RELOAD","Reload",,,Button)
+DialogEntry controls,NAVMENU,dropdownbutton,"Navigation",0,0,90,28,"Navigation actions","TOOLBAR","","","","",1,1,0,0,24,24;("NAVCOPY","Copy Target",,,Button),("PREVTARGET","Previous Target",,,Button),("NEXTTARGET","Next Target",,,Button)
+DialogEntry controls,DIAGMENU,dropdownbutton,"Diagnostics",0,0,96,28,"Diagnostics actions","TOOLBAR","","","","",1,1,0,0,24,24;("HEALTH","Health",,,Button),("HEALTHEXPORT","Export Health",,,Button),("DEBUGBUNDLE","Export Debug",,,Button)
 DialogEntry controls,LOAD,Button,"Load Route",0,0,65,28,"Load expedition JSON, RouteOps manifest, Spansh export, or EDDiscovery Route CSV","TOOLBAR"
+DialogEntry controls,RECENTROUTE,Button,"Recent Route",0,0,110,28,"Open the most recently used route that is currently available","TOOLBAR"
+DialogEntry controls,ROUTELIBRARY,Button,"Route Library",0,0,88,28,"Show recent routes, progress, availability, and recovered paths","TOOLBAR"
 DialogEntry controls,RELOAD,Button,"Reload",0,0,50,28,"Reload active route","TOOLBAR"
 DialogEntry controls,NAVCOPY,Button,"Copy Target",0,0,82,28,"Copy the explicit navigation target","TOOLBAR"
 DialogEntry controls,PREVTARGET,Button,"Previous Target",0,0,96,28,"Select the previous active body/system target without completing work","TOOLBAR"
@@ -53,13 +65,50 @@ DialogEntry controls,EXOMODE,Button,"Use Exobio",0,0,86,28,"Convert a system-onl
 DialogEntry controls,BACTERIUM,Button,"Bacterium: Included",0,0,126,28,"Include or exclude Bacterium from active navigation, completion, and value","TOOLBAR"
 DialogEntry controls,SHOWEXCLUDED,Button,"Show Excluded: Yes",0,0,126,28,"Show or hide filtered species while preserving their progress","TOOLBAR"
 DialogEntry controls,ROUTEVIEW,Button,"View: Active",0,0,88,28,"Switch body manifests between active and all bodies","TOOLBAR"
+DialogEntry controls,HEALTH,Button,"Health",0,0,58,28,"Run portable install, dependency, registration, route, and storage checks","TOOLBAR"
+DialogEntry controls,HEALTHEXPORT,Button,"Export Health",0,0,86,28,"Export runtime health as JSON and text under the plugin Diagnostics folder","TOOLBAR"
 DialogEntry controls,DEBUGBUNDLE,Button,"Export Debug",0,0,82,28,"Export route, navigation, species, filter, value, skip, and journal diagnostics","TOOLBAR"
+
+DialogEntry controls,GENBAR,flowpanel,"",0,0,1,32,"Generate an exobiology route directly from Spansh (hover fields for details)","",Top,"","",Horizontal
+DialogEntry controls,GENTITLE,label,"Exobiology",0,7,66,20,"Generate an exobiology route from Spansh","GENBAR"
+DialogEntry controls,GLFROM,label,"From",0,7,32,20,"Start system","GENBAR"
+DialogEntry controls,GENFROM,textbox,"",0,0,112,26,"Start system, e.g. Sol","GENBAR"
+DialogEntry controls,GLRANGE,label,"Range",0,7,40,20,"Jump range (ly)","GENBAR"
+DialogEntry controls,GENRANGE,textbox,"50",0,0,40,26,"Jump range in light years","GENBAR"
+DialogEntry controls,GLRADIUS,label,"Radius",0,7,44,20,"Search radius (ly)","GENBAR"
+DialogEntry controls,GENRADIUS,textbox,"100",0,0,42,26,"Search radius in light years","GENBAR"
+DialogEntry controls,GLMIN,label,"Min CR",0,7,46,20,"Minimum body value in credits","GENBAR"
+DialogEntry controls,GENMINVAL,textbox,"1000000",0,0,68,26,"Minimum body value in credits","GENBAR"
+DialogEntry controls,GLMAX,label,"Max",0,7,30,20,"Maximum bodies","GENBAR"
+DialogEntry controls,GENMAX,textbox,"50",0,0,38,26,"Maximum number of bodies","GENBAR"
+DialogEntry controls,GENERATE,Button,"Generate",0,0,76,28,"Generate an exobiology route from Spansh with these parameters","GENBAR"
+DialogEntry controls,GENSTATUS,label,"Enter a start system, then Generate.",0,7,220,20,"Spansh generation status","GENBAR"
+
+DialogEntry controls,COLBAR,flowpanel,"",0,0,1,32,"Plan colony supply: reads your construction needs from the journal and finds the nearest sources","",Top,"","",Horizontal
+DialogEntry controls,COLTITLE,label,"Colony Supply - Cargo(t) / Pad(large|any):",0,7,240,20,"Set your hauler cargo capacity and pad filter, then Colony Supply","COLBAR"
+DialogEntry controls,COLCARGO,textbox,"720",0,0,50,26,"Your hauler cargo capacity in tonnes","COLBAR"
+DialogEntry controls,COLPAD,textbox,"large",0,0,52,26,"Pad filter: type 'large' for large-pad only, or 'any'","COLBAR"
+DialogEntry controls,COLONISE,Button,"Colony Supply",0,0,100,28,"Read your colony construction needs from the journal and find the nearest source for each commodity","COLBAR"
+DialogEntry controls,COLSTATUS,label,"Reads your colony needs from the journal.",0,7,240,20,"Colony supply status","COLBAR"
+
+DialogEntry controls,CARGOBAR,flowpanel,"",0,0,1,32,"Generate a profit-optimised cargo route from Spansh","",Top,"","",Horizontal
+DialogEntry controls,CLSYS,label,"From system",0,7,72,20,"Start system, auto-filled from your current location","CARGOBAR"
+DialogEntry controls,CARGOSYS,textbox,"",0,0,118,26,"Start system - auto-filled from your current location","CARGOBAR"
+DialogEntry controls,CLSTN,label,"Station (blank=nearest)",0,7,124,20,"Optional. Leave blank to start at the nearest market","CARGOBAR"
+DialogEntry controls,CARGOSTN,textbox,"",0,0,118,26,"Optional start station. Leave blank to auto-find the nearest market","CARGOBAR"
+DialogEntry controls,CLCARGO,label,"Cargo",0,7,42,20,"Ship cargo capacity in tonnes","CARGOBAR"
+DialogEntry controls,CARGOCARGO,textbox,"720",0,0,46,26,"Your ship cargo capacity in tonnes","CARGOBAR"
+DialogEntry controls,CLHOPS,label,"Hops",0,7,34,20,"Maximum hops in the loop","CARGOBAR"
+DialogEntry controls,CARGOHOPS,textbox,"5",0,0,36,26,"Maximum number of hops in the loop","CARGOBAR"
+DialogEntry controls,CARGOPAD,Button,"Pad: Large only",0,0,110,28,"Click to toggle between large-pad-only and any-pad sources","CARGOBAR"
+DialogEntry controls,CARGO_GO,Button,"Cargo Route",0,0,92,28,"Generate a profit-optimised cargo/trade route from Spansh","CARGOBAR"
+DialogEntry controls,CARGOSTATUS,label,"Start system auto-fills. Leave station blank for nearest market.",0,7,300,20,"Cargo routing status","CARGOBAR"
 
 DialogEntry controls,HEADER,richtextbox,"",0,0,1,96,"Navigation summary","",Top,"",""
 
 DialogControl UC, AddRange controls
-DialogControl UC, setescape HEADER="RouteOps v0.5.0 starting...\r\nLoading navigation and route state."
-DialogControl UC, setescape DETAIL="Select a system, inspect a body manifest, then choose an explicit navigation target."
+DialogControl UC, setescape HEADER="RouteOps v0.7.0 starting...\r\nLoading navigation, route state, route library, and runtime health."
+DialogControl UC, setescape DETAIL="Use Route Library to inspect recent routes or Health to inspect the portable installation."
 
 END PROGRAM
 

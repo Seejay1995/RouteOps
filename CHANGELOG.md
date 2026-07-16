@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0
+
+- Added an in-panel mode switcher (Exobiology / Colonisation / Cargo); each modality gets the whole panel via show/hide since EDDiscovery ZMQ panels have no native tabs.
+- Added **Spansh exobiology route generation** directly in-panel: enter a start system, range, radius, min value and max bodies; RouteOps calls Spansh, flattens the result through the existing importer, saves it as a route and loads it.
+- Added a **Colonisation Supply** board: reads your latest `ColonisationConstructionDepot` needs from the journal and finds the nearest large-pad source for each outstanding commodity (with trips, distance, buy price and supply), pad filter selectable.
+- Added **Cargo (trade) routing**: give a start system (auto-filled from your journal location, cargo capacity from your latest Loadout) and RouteOps finds the nearest real market itself — routing you there for the first buy — then plots a profit-optimised loop. Large-pad toggle.
+- Reworked the HEADER into a dashboard (progress meter, next target, legend) and added a live telemetry line (current body / fuel / target) from EDDiscovery `edduievent` pushes.
+- Added per-cell tooltips across the system/body/species grids.
+- Moved species/body triage onto grid right-click context menus (selectable difficulty and skip reason); retired the triage/body button bars.
+- Consolidated the toolbar into Route / Navigation / Diagnostics dropdown menus.
+- Added DataGridView column-layout persistence across restarts.
+- Fixed a crash parsing journal events with list-valued fields (e.g. `Cargo` with an empty `Inventory`): membership checks now use tuples, not sets, and journal handling is guarded so one bad event cannot terminate the panel.
+- Single-sourced the plugin version; the HEADER now reports the running version correctly.
+- New modules: `routeops_version.py`, `spansh_client.py`, `colonisation.py`, `cargo.py` (standard library only).
+
 ## 0.5.0
 
 - Replaced flat stop navigation with first-class system, body, organism, and explicit navigation-target models.

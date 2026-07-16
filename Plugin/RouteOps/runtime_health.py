@@ -21,6 +21,7 @@ STATUS_ERROR = "error"
 DEFAULT_REQUIRED_FILES = (
     "config.json",
     "RouteOps.py",
+    "routeops_runtime.py",
     "routeops_kernel_app.py",
     "route_compiler.py",
     "source_providers.py",
@@ -244,15 +245,15 @@ class RuntimeHealthService:
 
         python_config = config.get("Python", {}) if isinstance(config, dict) else {}
         start = str(python_config.get("Start", "")) if isinstance(python_config, dict) else ""
-        if start.casefold() != "routeops_kernel_app.py":
+        if start.casefold() != "routeops_runtime.py":
             return [HealthCheck(
                 "Plugin configuration",
                 STATUS_ERROR,
-                "EDDiscovery is not configured to start the kernel application.",
+                "EDDiscovery is not configured to start the RouteOps runtime application.",
                 detail=f"Configured start file: {start or '<missing>'}",
-                action="Reinstall RouteOps so config.json starts routeops_kernel_app.py.",
+                action="Reinstall RouteOps so config.json starts routeops_runtime.py.",
             )]
-        return [HealthCheck("Plugin configuration", STATUS_PASS, "Kernel application startup is configured correctly.")]
+        return [HealthCheck("Plugin configuration", STATUS_PASS, "RouteOps runtime startup is configured correctly.")]
 
     def _check_eddiscovery_layout(self) -> list[HealthCheck]:
         data_root = self.eddiscovery_data_root

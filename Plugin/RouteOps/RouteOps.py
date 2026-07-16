@@ -12,6 +12,7 @@ from navigation_model import SKIP_REASON_LABELS
 from route_engine import RouteEngine
 from route_importer import RouteImportError, import_route
 from state_store import load_state, save_state
+from routeops_version import DISPLAY_VERSION, VERSION
 from ui_renderer import (
     render_body_rows,
     render_detail,
@@ -19,8 +20,6 @@ from ui_renderer import (
     render_system_rows,
     render_species_rows,
 )
-
-VERSION = "0.5.0.0"
 
 
 class RouteOpsApplication:
@@ -47,6 +46,10 @@ class RouteOpsApplication:
             self.load_route(self.route_path, quiet=True)
         else:
             self.refresh_ui()
+
+    def pump_background(self) -> None:
+        """Hook called each main-loop iteration. No-op in the legacy base; the
+        kernel app overrides it to drain the Spansh generation worker thread."""
 
     def load_route(self, path: str, quiet: bool = False) -> None:
         result = import_route(path)
@@ -122,7 +125,7 @@ class RouteOpsApplication:
         if not self.engine:
             self.client.ui_set_escape(
                 "HEADER",
-                "ROUTEOPS v0.5.0\r\n"
+                f"ROUTEOPS {DISPLAY_VERSION}\r\n"
                 "No route loaded.\r\n"
                 "Load an enriched exobiology manifest to see systems, bodies, species, distances, and values before SAA.\r\n"
                 f"STATUS: {self.last_message}",
@@ -138,7 +141,9 @@ class RouteOpsApplication:
             self._update_buttons()
             return
 
-        self.client.ui_set_escape("HEADER", render_header(self.engine, self.last_message))
+        self.client.ui_set_escape(
+            "HEADER", render_header(self.engine, self.last_message, getattr(self, "telemetry_line", ""))
+        )
         self.client.ui_set_escape("DETAIL", render_detail(self.engine))
         for grid, rows in (
             ("DGV", render_system_rows(self.engine)),
@@ -475,6 +480,7 @@ def main() -> int:
             message = client.get_next()
             if message:
                 running = app.handle_message(message)
+            app.pump_background()
         return 0
     except (RouteImportError, OSError, ValueError) as exc:
         traceback.print_exc()

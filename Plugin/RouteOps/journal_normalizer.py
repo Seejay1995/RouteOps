@@ -62,14 +62,14 @@ def _text(entry: dict[str, Any], *names: str) -> str:
 def _integer(entry: dict[str, Any], *names: str, default: int = 1) -> int:
     value = _lookup(entry, *names)
     try:
-        return int(float(value)) if value not in {None, ""} else default
+        return int(float(value)) if value not in (None, "") else default
     except (TypeError, ValueError):
         return default
 
 
 def _optional_integer(entry: dict[str, Any], *names: str) -> int | None:
     value = _lookup(entry, *names)
-    if value in {None, ""}:
+    if value in (None, ""):
         return None
     try:
         return int(float(value))

@@ -31,7 +31,7 @@ def _normalized_map(row: dict[str, Any]) -> dict[str, Any]:
 def _first(row: dict[str, Any], keys: tuple[str, ...], default: Any = None) -> Any:
     values = _normalized_map(row)
     for key in keys:
-        if key in values and values[key] not in {None, ""}:
+        if key in values and values[key] not in (None, ""):
             return values[key]
     return default
 
@@ -41,7 +41,7 @@ def _text(value: Any) -> str:
 
 
 def _integer(value: Any) -> int | None:
-    if value in {None, ""}:
+    if value in (None, ""):
         return None
     try:
         return int(float(str(value).replace(",", "").strip()))

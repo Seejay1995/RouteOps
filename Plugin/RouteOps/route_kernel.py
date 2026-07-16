@@ -52,6 +52,8 @@ class RouteKernel:
             KernelCommandType.TOGGLE_ROUTE_VIEW: self._engine.toggle_route_view,
             KernelCommandType.SET_SELECTED_TASK_INCLUSION: lambda: self._engine.set_selected_task_inclusion(str(payload.get("mode", "default"))),
             KernelCommandType.SET_SELECTED_BODY_INCLUSION: lambda: self._engine.set_selected_body_inclusion(str(payload.get("mode", "default"))),
+            KernelCommandType.SET_SELECTED_DIFFICULTY: lambda: self._engine.set_selected_difficulty(str(payload.get("value", ""))),
+            KernelCommandType.SET_DEFAULT_SKIP_REASON: lambda: self._engine.set_default_skip_reason(str(payload.get("value", ""))),
         }
         handler = handlers.get(command.command_type)
         if handler is None:

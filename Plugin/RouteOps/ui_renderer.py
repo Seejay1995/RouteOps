@@ -6,6 +6,7 @@ from exobio_taxonomy import InclusionState, KnowledgeLevel
 from navigation_model import SKIP_REASON_LABELS
 from route_engine import RouteEngine
 from route_models import OperationPhase, ProgressStatus, RouteStop, StopType, TaskStatus
+from routeops_version import DISPLAY_VERSION
 from specializations import display_name
 
 
@@ -49,7 +50,31 @@ def _manifest_label(value: str) -> str:
     }.get(value, value.upper() if value else "UNKNOWN")
 
 
-def render_header(engine: RouteEngine, last_message: str = "") -> str:
+def _bar(fraction: float, width: int = 18) -> str:
+    """Monochrome text progress bar, e.g. [########----------]."""
+    if fraction < 0:
+        fraction = 0.0
+    elif fraction > 1:
+        fraction = 1.0
+    filled = int(round(fraction * width))
+    return "[" + "#" * filled + "-" * (width - filled) + "]"
+
+
+def _progress_line(metrics) -> str:
+    total = metrics.total_stops or 0
+    resolved = metrics.complete_stops + metrics.skipped_stops
+    fraction = (resolved / total) if total else 0.0
+    pct = int(round(fraction * 100))
+    skipped = f" ({metrics.skipped_stops} skipped)" if metrics.skipped_stops else ""
+    samples = (
+        f" - SAMPLES {metrics.completed_samples}/{metrics.total_samples}"
+        if metrics.total_samples
+        else ""
+    )
+    return f"PROGRESS {_bar(fraction)} {pct}% - BODIES {metrics.complete_stops}/{total}{skipped}{samples}"
+
+
+def render_header(engine: RouteEngine, last_message: str = "", telemetry: str = "") -> str:
     metrics = engine.route_metrics()
     target = engine.navigation_target
     current = engine.current_stop
@@ -63,14 +88,21 @@ def render_header(engine: RouteEngine, last_message: str = "") -> str:
     if system:
         system_summary = f" - {system.active_body_count} bodies - {system.target_count} targets - {_credits(system.active_value)}"
     status = f" - STATUS: {last_message}" if last_message else ""
-    return "\r\n".join(
+    lines = [
+        f"ROUTEOPS {DISPLAY_VERSION} - {engine.route.name}",
+        _progress_line(metrics),
+    ]
+    if telemetry:
+        lines.append(telemetry)
+    lines.extend(
         [
-            f"ROUTEOPS v0.5.0 - {engine.route.name}",
             f"NAVIGATION: {target_kind} - {target_text}",
             f"LOCATION: {location}{system_summary}",
             f"GUIDANCE: {engine.guidance_mode.upper()} - ORDER: {engine.body_order_mode.upper()} - ACTIVE: {_credits(metrics.active_base_value)} - SECURED: {_credits(metrics.secured_base_value)}{status}",
+            "LEGEND: >=current  *=selected  -  right-click a body or species row for actions",
         ]
     )
+    return "\r\n".join(lines)
 
 
 def _skip_preview_lines(engine: RouteEngine) -> list[str]:
@@ -179,12 +211,21 @@ def render_system_rows(engine: RouteEngine) -> list[dict[str, Any]]:
         state = "IN SYSTEM" if system.key == current_key and engine.current_location.get("system") else (
             "COMPLETE" if system.active_body_count == 0 and system.complete_body_count else "PLANNED"
         )
+        system_tip = "\r\n".join(
+            [
+                system.name,
+                f"Bodies: {len(system.bodies)} ({system.active_body_count} active)",
+                f"Targets: {system.completed_target_count}/{system.target_count}",
+                f"Active value: {_credits(system.active_value)}",
+                f"Manifest: {_manifest_label(system.manifest_completeness)}",
+            ]
+        )
         rows.append(
             {
                 "row": -2,
                 "cells": [
                     {"type": "text", "value": str(index)},
-                    {"type": "text", "value": prefix + system.name},
+                    {"type": "text", "value": prefix + system.name, "tooltip": system_tip},
                     {"type": "text", "value": str(len(system.bodies))},
                     {"type": "text", "value": str(system.active_body_count)},
                     {"type": "text", "value": f"{system.completed_target_count}/{system.target_count}"},
@@ -234,12 +275,23 @@ def render_body_rows(engine: RouteEngine) -> list[dict[str, Any]]:
             state = stop.operation_phase.upper()
         else:
             state = "QUEUED"
+        body_tip = "\r\n".join(
+            [
+                plan.body_name or "Unresolved body",
+                f"Distance: {_distance(plan.distance_from_arrival_ls)}",
+                f"Bio signals: {plan.biological_signals if plan.biological_signals is not None else '?'}",
+                f"Targets: {targets}",
+                f"Samples: {plan.sample_current}/{plan.sample_total}",
+                f"Value: {_value_or_range(plan.active_value if plan.active_value_min == plan.active_value_max else None, plan.active_value_min, plan.active_value_max)}",
+                f"State: {state}",
+            ]
+        )
         rows.append(
             {
                 "row": -2,
                 "cells": [
                     {"type": "text", "value": str(order)},
-                    {"type": "text", "value": prefix + (plan.body_name or "Unresolved body")},
+                    {"type": "text", "value": prefix + (plan.body_name or "Unresolved body"), "tooltip": body_tip},
                     {"type": "text", "value": _distance(plan.distance_from_arrival_ls)},
                     {"type": "text", "value": str(plan.biological_signals) if plan.biological_signals is not None else "?"},
                     {"type": "text", "value": targets},
@@ -330,13 +382,24 @@ def render_species_rows(engine: RouteEngine) -> list[dict[str, Any]]:
         organism = task.display_organism or task.label
         decision = "COMPLETE" if task.complete else ("SKIP" if task.status == TaskStatus.SKIPPED else use)
         variant = task.variant or ("Species exact" if task.species else ("Genus only" if task.genus else "Unknown"))
+        species_tip = "\r\n".join(
+            [
+                organism,
+                f"Certainty: {knowledge}",
+                f"Variant: {variant}",
+                f"Value: {base} (active: {active_value})",
+                f"Difficulty: {task.search_difficulty.replace('-', ' ').title()}",
+                f"Scans: {task.quantity_completed}/{task.quantity_required}",
+                f"Source: {source}",
+            ]
+        )
         rows.append(
             {
                 "row": -2,
                 "cells": [
                     {"type": "text", "value": ("> " if selected else "") + decision},
                     {"type": "text", "value": knowledge},
-                    {"type": "text", "value": organism},
+                    {"type": "text", "value": organism, "tooltip": species_tip},
                     {"type": "text", "value": variant},
                     {"type": "text", "value": f"{task.quantity_completed}/{task.quantity_required}"},
                     {"type": "text", "value": base},
