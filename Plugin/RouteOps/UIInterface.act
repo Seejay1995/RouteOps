@@ -4,7 +4,7 @@ ENABLED True
 
 INSTALL LongDescription="RouteOps navigation-first EDDiscovery operations panel UI"
 INSTALL ShortDescription="RouteOps UI"
-INSTALL Version=0.7.0.0
+INSTALL Version=0.7.1.0
 INSTALL MinEDVersion=19.0.0.0
 INSTALL Location=.
 
@@ -107,7 +107,7 @@ DialogEntry controls,CARGOSTATUS,label,"Start system auto-fills. Leave station b
 DialogEntry controls,HEADER,richtextbox,"",0,0,1,96,"Navigation summary","",Top,"",""
 
 DialogControl UC, AddRange controls
-DialogControl UC, setescape HEADER="RouteOps v0.7.0 starting...\r\nLoading navigation, route state, route library, and runtime health."
+DialogControl UC, setescape HEADER="RouteOps v0.7.1 starting...\r\nLoading navigation, route state, route library, and runtime health."
 DialogControl UC, setescape DETAIL="Use Route Library to inspect recent routes or Health to inspect the portable installation."
 
 END PROGRAM

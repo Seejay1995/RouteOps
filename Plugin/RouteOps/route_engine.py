@@ -1401,21 +1401,29 @@ class RouteEngine:
         for raw_genus in event.genuses:
             genus_id = canonical_genus_id(raw_genus)
             display_genus = display_genus_name(genus_id, raw_genus)
+            # Match ANY organic task of this genus already on the body -- INCLUDING an
+            # exact species imported from Spansh (which has task.species set). The old
+            # `not task.species` filter missed those, so a genus scan added a duplicate
+            # genus-only row next to the already-known exact species.
             existing = next(
                 (
                     task
                     for task in stop.organic_tasks
-                    if not task.species
-                    and (task.genus_id == genus_id if genus_id else normalize_organic_name(task.genus or task.target) == normalize_organic_name(raw_genus))
+                    if (task.genus_id == genus_id if genus_id else normalize_organic_name(task.genus or task.target) == normalize_organic_name(raw_genus))
                 ),
                 None,
             )
             if existing:
                 existing.genus = existing.genus or display_genus
-                existing.genus_id = genus_id
-                existing.knowledge_level = KnowledgeLevel.GENUS_CONFIRMED
+                if not existing.genus_id:
+                    existing.genus_id = genus_id
+                # SAA confirms the genus is present; upgrade an unknown slot to
+                # genus-confirmed, but NEVER downgrade an exact species (CONFIRMED).
+                if existing.knowledge_level == KnowledgeLevel.UNKNOWN:
+                    existing.knowledge_level = KnowledgeLevel.GENUS_CONFIRMED
                 existing.metadata.setdefault("rawGenus", raw_genus)
                 existing.metadata.setdefault("source", "SAASignalsFound")
+                existing.metadata["saaGenusConfirmed"] = True
                 continue
             task_id = self._unique_task_id(stop, f"{stop.id}-{_slug(display_genus)}")
             colony_range = DEFAULT_CATALOG.colony_range_for_genus(display_genus)
@@ -1478,6 +1486,36 @@ class RouteEngine:
         if removable:
             remove_ids = {task.id for task in removable}
             stop.tasks[:] = [task for task in stop.tasks if task.id not in remove_ids]
+
+    def _reconcile_genus_duplicates(self) -> None:
+        """Collapse redundant genus-only tasks left by earlier SAA scans.
+
+        Routes loaded from state saved before the genus/species reconcile fix can
+        carry a genus-only task (from SAASignalsFound) next to an exact species of
+        the same genus (from Spansh). Remove the redundant placeholder, but never a
+        task with sampling progress, an unresolved-signal slot, or the current
+        selection.
+        """
+        for stop in self.route.stops:
+            if stop.stop_type != StopType.EXOBIOLOGY:
+                continue
+            species_genera = {
+                task.genus_id for task in stop.organic_tasks if task.species and task.genus_id
+            }
+            if not species_genera:
+                continue
+            remove_ids = {
+                task.id
+                for task in stop.organic_tasks
+                if not task.species
+                and task.genus_id in species_genera
+                and task.knowledge_level == KnowledgeLevel.GENUS_CONFIRMED
+                and not bool(task.metadata.get("unresolvedSlot", False))
+                and task.quantity_completed == 0
+                and task.id != self.selected_task_id
+            }
+            if remove_ids:
+                stop.tasks[:] = [task for task in stop.tasks if task.id not in remove_ids]
 
     def _handle_scan_organic(self, stop: RouteStop, event: JournalEvent, actions: list[dict[str, Any]]) -> None:
         if stop.stop_type != StopType.EXOBIOLOGY:
@@ -2052,6 +2090,7 @@ class RouteEngine:
                     if isinstance(raw_task_metadata, dict):
                         task.metadata.update(raw_task_metadata)
         self._repair_legacy_filter_mutations()
+        self._reconcile_genus_duplicates()
         for stop in self.route.stops:
             if self._false_arrival_completion(stop):
                 stop.status = ProgressStatus.PENDING

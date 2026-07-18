@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1
+
+- Fixed exobiology genus/species duplication: a live SAASignalsFound scan now reconciles each reported genus against the exact species already on the body (from a Spansh route) instead of adding a duplicate genus-only row. Genuinely new genera (not predicted by Spansh) are still added.
+- Exact species keep their CONFIRMED knowledge level (never downgraded to genus-only) and record that SAA confirmed their genus.
+- Added a one-time load-time sweep that cleans up routes already polluted with duplicate genus rows, preserving any task with sampling progress or the current selection.
+- Added tests for SAA dedup and the cleanup sweep.
+
 ## 0.7.0
 
 - Added an in-panel mode switcher (Exobiology / Colonisation / Cargo); each modality gets the whole panel via show/hide since EDDiscovery ZMQ panels have no native tabs.
