@@ -46,7 +46,7 @@ def total_distance(result: Any) -> int:
     return int(round(sum(float(hop.get("distance") or 0) for hop in _hops(result))))
 
 
-def route_to_rows(result: Any) -> list[dict[str, Any]]:
+def route_to_rows(result: Any, current_hop: int | None = None) -> list[dict[str, Any]]:
     hops = _hops(result)
     approach = result.get("approach") if isinstance(result, dict) else None
     from_system = result.get("from_system") if isinstance(result, dict) else None
@@ -98,10 +98,11 @@ def route_to_rows(result: Any) -> list[dict[str, Any]]:
             f"Jump {_fmt(hop.get('distance'), ' ly')}  |  profit {_fmt(profit, ' cr')}"
             + (f"  ({_fmt(per_ton, ' cr/t')})" if per_ton else ""),
         ]) + extra
+        hop_label = f"> {index}" if current_hop == index - 1 else str(index)
         rows.append({
             "row": -2,
             "cells": [
-                {"type": "text", "value": str(index)},
+                {"type": "text", "value": hop_label},
                 {"type": "text", "value": commodity_text, "tooltip": tip},
                 {"type": "text", "value": from_text, "tooltip": tip},
                 {"type": "text", "value": to_text, "tooltip": tip},

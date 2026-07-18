@@ -158,6 +158,9 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self._cargo_prefilled = False
         self._cargo_pad_large = True
         self._cargo_sys_prefill = ""
+        # Live trade-run tracking: the generated route + which hop is in progress.
+        self._cargo_route: dict[str, Any] | None = None
+        self._cargo_hop = 0
         self._context_menus_registered = False
         self.mode = "exo"
         # Live telemetry state (populated from EDDiscovery edduievent/newtarget pushes).
@@ -800,11 +803,93 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                 "CARGOSTATUS",
                 f"From {start}:  {len(hops)} hops  |  {profit:,} CR  |  {distance} ly loop  |  {per_hop:,} CR/hop",
             )
+            # Arm live trade-run tracking and copy the first buy system to the clipboard.
+            self._cargo_route = result
+            self._cargo_hop = 0
+            first_source = (hops[0].get("source") or {}) if hops else {}
+            start_system = first_source.get("system") or result.get("start_system")
+            copied = self._copy_system(start_system)
+            if start_system:
+                self.client.ui_set(
+                    "CARGOSTATUS",
+                    f"Go to {start_system} and buy  -  {len(hops)} hops, {profit:,} CR"
+                    + ("  (copied)" if copied else ""),
+                )
             self.set_mode("cargo")
-            self.client.ui_suspend("CARGOGRID")
-            self.client.ui_clear("CARGOGRID")
-            self.client.ui_add_set_rows("CARGOGRID", cargo_mod.route_to_rows(result))
-            self.client.ui_resume("CARGOGRID")
+            self._render_cargo()
+
+    # --- live trade-run tracking --------------------------------------------
+    def _copy_system(self, system: Any) -> bool:
+        if not system:
+            return False
+        try:
+            from clipboard_service import copy_text
+
+            return bool(copy_text(str(system)).success)
+        except Exception:  # noqa: BLE001 - clipboard is best-effort
+            return False
+
+    def _render_cargo(self) -> None:
+        if not self._cargo_route:
+            return
+        import cargo as cargo_mod
+
+        self.client.ui_suspend("CARGOGRID")
+        self.client.ui_clear("CARGOGRID")
+        self.client.ui_add_set_rows(
+            "CARGOGRID", cargo_mod.route_to_rows(self._cargo_route, self._cargo_hop)
+        )
+        self.client.ui_resume("CARGOGRID")
+
+    @staticmethod
+    def _norm(value: Any) -> str:
+        return str(value or "").strip().casefold()
+
+    def _cargo_track(self, entry: dict[str, Any]) -> None:
+        """Drive the trade run from live journal events: buy -> copy next system."""
+        route = self._cargo_route
+        hops = (route or {}).get("hops") or []
+        if not hops:
+            return
+        event = entry.get("event")
+        if event == "MarketBuy":
+            bought = self._norm(entry.get("Type_Localised") or entry.get("Type"))
+            if not bought:
+                return
+            # Find the hop that buys this commodity (search from the current hop, wrapping),
+            # so buying the right good anywhere in the loop advances the run.
+            count = len(hops)
+            match = None
+            for step in range(count):
+                idx = (self._cargo_hop + step) % count
+                first = (hops[idx].get("commodities") or [{}])[0]
+                if self._norm(first.get("name")) == bought:
+                    match = idx
+                    break
+            if match is None:
+                return
+            self._cargo_hop = match
+            destination = hops[match].get("destination") or {}
+            dest_system = destination.get("system")
+            dest_station = destination.get("station")
+            copied = self._copy_system(dest_system)
+            commodity = entry.get("Type_Localised") or entry.get("Type")
+            self.client.ui_set(
+                "CARGOSTATUS",
+                f"Hop {match + 1}/{count}: bought {commodity}  ->  sell at "
+                f"{dest_system} / {dest_station}" + ("  (copied)" if copied else ""),
+            )
+            self._render_cargo()
+        elif event == "Docked":
+            system = entry.get("StarSystem")
+            hop = hops[self._cargo_hop] if self._cargo_hop < len(hops) else None
+            destination = (hop or {}).get("destination") or {}
+            if system and self._norm(system) == self._norm(destination.get("system")):
+                commodity = (hops[self._cargo_hop].get("commodities") or [{}])[0].get("name", "cargo")
+                self.client.ui_set(
+                    "CARGOSTATUS",
+                    f"Arrived {entry.get('StationName')}: sell {commodity}, then buy the next hop",
+                )
 
     def handle_message(self, message: dict[str, Any]) -> bool:
         response_type = message.get("responsetype")
@@ -819,15 +904,21 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         if response_type == "newtarget":
             self._handle_new_target(message)
             return True
-        if response_type == "journalpush" and self.kernel:
+        if response_type == "journalpush":
             entry = message.get("journalEntry")
             if isinstance(entry, dict):
-                try:
-                    result = self.kernel.handle_journal(entry)
-                    if result.actions:
-                        self._accept_kernel_result(result)
-                except Exception as exc:  # noqa: BLE001 - one bad event must not kill the panel
-                    print(f"RouteOps: skipped journal event {entry.get('event')!r}: {exc}")
+                if self._cargo_route:  # live trade-run tracking (independent of any exo route)
+                    try:
+                        self._cargo_track(entry)
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"RouteOps: cargo tracking skipped {entry.get('event')!r}: {exc}")
+                if self.kernel:
+                    try:
+                        result = self.kernel.handle_journal(entry)
+                        if result.actions:
+                            self._accept_kernel_result(result)
+                    except Exception as exc:  # noqa: BLE001 - one bad event must not kill the panel
+                        print(f"RouteOps: skipped journal event {entry.get('event')!r}: {exc}")
             return True
         if response_type in {"historypush", "historyload"} and self.kernel:
             entries = message.get("journalEntries", message.get("entries", message.get("history", [])))

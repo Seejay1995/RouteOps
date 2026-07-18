@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.5
+
+- Cargo tab now tracks your trade run live: after you generate a route it copies the first buy system to your clipboard, and each time you buy a hop's commodity in-game it copies that hop's destination system to the clipboard - paste straight into the galaxy map to plot. Docking at a hop's sell point is recognised too. The active hop is marked in the grid.
+
 ## 0.7.4
 
 - Cargo tab overhaul: fixed the missing column headers (a WinForms docking z-order bug - the Fill grids now dock correctly below the mode bar), human-readable credit values (e.g. 13.07M), a running Cumulative-profit column, and a richer status line (hops, total profit, loop distance, profit/hop). Per-hop tooltip now includes profit-per-tonne.
