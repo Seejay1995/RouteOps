@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.2
+
+- Added the **Firsts Radar**: a standalone, colour-coded window that tails the journal and flags, live, which bodies in your current system still offer a first discovery / first map / first footfall (plus likely-first-logged bio in undiscovered systems), with per-body **exploration value estimates** (MattG's formula) and a system total.
+- Added a **Firsts Radar** button to the RouteOps mode bar that opens the window (bundled with the plugin, launched as a detached process).
+
 ## 0.7.1
 
 - Fixed exobiology genus/species duplication: a live SAASignalsFound scan now reconciles each reported genus against the exact species already on the body (from a Spansh route) instead of adding a duplicate genus-only row. Genuinely new genera (not predicted by Spansh) are still added.

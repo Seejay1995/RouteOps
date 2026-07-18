@@ -4,7 +4,7 @@ ENABLED True
 
 INSTALL LongDescription="RouteOps navigation-first EDDiscovery operations panel UI"
 INSTALL ShortDescription="RouteOps UI"
-INSTALL Version=0.7.1.0
+INSTALL Version=0.7.2.0
 INSTALL MinEDVersion=19.0.0.0
 INSTALL Location=.
 
@@ -16,9 +16,10 @@ DialogEntry controls,MODEBAR,flowpanel,"",0,0,1,32,"Switch RouteOps mode: Exobio
 DialogEntry controls,MODE_EXO,Button,"[ Exobiology ]",0,0,110,28,"Exobiology routing: load or generate routes and triage species","MODEBAR"
 DialogEntry controls,MODE_COLONY,Button,"Colonisation",0,0,110,28,"Colonisation supply: source your colony construction commodities from the journal","MODEBAR"
 DialogEntry controls,MODE_CARGO,Button,"Cargo",0,0,90,28,"Cargo/trade: generate a profit-optimised hauling route from Spansh","MODEBAR"
+DialogEntry controls,FIRSTS_RADAR,Button,"Firsts Radar",0,0,100,28,"Open the standalone Firsts Radar window: live first discovery / map / footfall tracker with value estimates","MODEBAR"
 
 DialogEntry controls,DGV,dgv,"",10,10,10,10,"System navigation queue","",Fill,"","",0;(text,"#",38,Numeric),(text,"System",205),(text,"Bodies",55),(text,"Active",55),(text,"Targets",75),(text,"Active Value",105),(text,"Manifest",85),(text,"State",90)
-DialogEntry controls,COLGRID,dgv,"",10,10,10,10,"Colony commodity sourcing board (right side scrolls)","",Fill,"","",0;(text,"Commodity",150),(text,"Need",70,Numeric),(text,"Trips",50,Numeric),(text,"Best Source",240),(text,"Dist ly",60,Numeric),(text,"Buy CR",72,Numeric),(text,"Supply",90,Numeric)
+DialogEntry controls,COLGRID,dgv,"",10,10,10,10,"Colony commodity sourcing board (right side scrolls)","",Fill,"","",0;(text,"Commodity",150),(text,"Need",70,Numeric),(text,"Trips",50,Numeric),(text,"Jumps",52,Numeric),(text,"Best Source",240),(text,"Dist ly",60,Numeric),(text,"Buy CR",72,Numeric),(text,"Supply",90,Numeric)
 DialogEntry controls,CARGOGRID,dgv,"",10,10,10,10,"Cargo trade route hops","",Fill,"","",0;(text,"Hop",42,Numeric),(text,"Commodity",160),(text,"From",200),(text,"To",200),(text,"Dist ly",60,Numeric),(text,"Buy CR",72,Numeric),(text,"Sell CR",72,Numeric),(text,"Profit",90,Numeric)
 
 DialogEntry controls,BODIES,dgv,"",0,0,1,172,"Selected system body manifest","",Bottom,"","",0;(text,"Order",48,Numeric),(text,"Body",210),(text,"Distance",82),(text,"Bio",45),(text,"Targets",120),(text,"Scans",62),(text,"Active Value",105),(text,"State",92)
@@ -85,8 +86,10 @@ DialogEntry controls,GENERATE,Button,"Generate",0,0,76,28,"Generate an exobiolog
 DialogEntry controls,GENSTATUS,label,"Enter a start system, then Generate.",0,7,220,20,"Spansh generation status","GENBAR"
 
 DialogEntry controls,COLBAR,flowpanel,"",0,0,1,32,"Plan colony supply: reads your construction needs from the journal and finds the nearest sources","",Top,"","",Horizontal
-DialogEntry controls,COLTITLE,label,"Colony Supply - Cargo(t) / Pad(large|any):",0,7,240,20,"Set your hauler cargo capacity and pad filter, then Colony Supply","COLBAR"
+DialogEntry controls,COLTITLE,label,"Colony - Cargo(t) / Laden(ly) / Unladen(ly) / Pad:",0,7,258,20,"Set cargo capacity, your laden and unladen jump ranges (ly), and pad filter, then Colony Supply","COLBAR"
 DialogEntry controls,COLCARGO,textbox,"720",0,0,50,26,"Your hauler cargo capacity in tonnes","COLBAR"
+DialogEntry controls,COLLADEN,textbox,"",0,0,44,26,"Your laden jump range in light years (fully loaded)","COLBAR"
+DialogEntry controls,COLUNLADEN,textbox,"",0,0,44,26,"Your unladen jump range in light years (from the game FSD panel / journal)","COLBAR"
 DialogEntry controls,COLPAD,textbox,"large",0,0,52,26,"Pad filter: type 'large' for large-pad only, or 'any'","COLBAR"
 DialogEntry controls,COLONISE,Button,"Colony Supply",0,0,100,28,"Read your colony construction needs from the journal and find the nearest source for each commodity","COLBAR"
 DialogEntry controls,COLSTATUS,label,"Reads your colony needs from the journal.",0,7,240,20,"Colony supply status","COLBAR"
@@ -107,7 +110,7 @@ DialogEntry controls,CARGOSTATUS,label,"Start system auto-fills. Leave station b
 DialogEntry controls,HEADER,richtextbox,"",0,0,1,96,"Navigation summary","",Top,"",""
 
 DialogControl UC, AddRange controls
-DialogControl UC, setescape HEADER="RouteOps v0.7.1 starting...\r\nLoading navigation, route state, route library, and runtime health."
+DialogControl UC, setescape HEADER="RouteOps v0.7.2 starting...\r\nLoading navigation, route state, route library, and runtime health."
 DialogControl UC, setescape DETAIL="Use Route Library to inspect recent routes or Health to inspect the portable installation."
 
 END PROGRAM

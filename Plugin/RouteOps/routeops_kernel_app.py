@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+import subprocess
+import sys
 import threading
 import time
 from copy import deepcopy
@@ -145,6 +148,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self._colony_error: str | None = None
         self._colony_status: str = ""
         self._colony_status_shown: str = ""
+        self._colony_prefilled = False
         # Cargo (trade) routing (worker thread -> main-loop pump).
         self._cargo_thread: threading.Thread | None = None
         self._cargo_result: dict[str, Any] | None = None
@@ -352,6 +356,9 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         if control == "MODE_CARGO":
             self.set_mode("cargo")
             return
+        if control == "FIRSTS_RADAR":
+            self._launch_firsts_radar()
+            return
         tag = message.get("value")
         if control in ("BODIES", "ORGANISMS") and self._is_menu_tag(tag):
             self._handle_context_menu(control, tag, self._extract_row_index(message))
@@ -468,6 +475,24 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self.client.ui_set("MODE_CARGO", "[ Cargo ]" if mode == "cargo" else "Cargo")
         if mode == "cargo":
             self._prefill_cargo()
+        elif mode == "colony":
+            self._prefill_colony()
+
+    def _launch_firsts_radar(self) -> None:
+        """Open the bundled standalone Firsts Radar window as a detached process."""
+        radar = Path(__file__).resolve().parent / "FirstsRadar" / "firsts_radar.py"
+        if not radar.is_file():
+            self.client.message_box(
+                "Firsts Radar files were not found in the plugin folder.", "RouteOps", "OK", "Warning"
+            )
+            return
+        # Prefer a system pythonw/python (has tkinter); fall back to the running interpreter.
+        executable = shutil.which("pythonw") or shutil.which("python") or sys.executable
+        flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        try:
+            subprocess.Popen([executable, str(radar)], cwd=str(radar.parent), creationflags=flags, close_fds=True)
+        except Exception as exc:  # noqa: BLE001 - surface to the panel, never crash it
+            self.client.message_box(f"Could not open Firsts Radar: {exc}", "RouteOps", "OK", "Error")
 
     def _prefill_cargo(self) -> None:
         """Fill the cargo start SYSTEM and cargo capacity from the journal (once).
@@ -574,6 +599,8 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             return
         cargo = self._read_colony_cargo()
         large_pad_only = str(self.client.ui_get("COLPAD") or "large").strip().lower() != "any"
+        laden_range = self._read_float("COLLADEN")
+        unladen_range = self._read_float("COLUNLADEN")
         self._colony_result = None
         self._colony_error = None
         self._colony_status = "Reading colony needs from journal..."
@@ -593,6 +620,8 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                     construction,
                     cargo_capacity=cargo,
                     large_pad_only=large_pad_only,
+                    laden_range=laden_range,
+                    unladen_range=unladen_range,
                     on_progress=self._set_colony_status,
                 )
                 self._colony_result = (construction, board)
@@ -601,6 +630,26 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
 
         self._colony_thread = threading.Thread(target=worker, name="routeops-colony", daemon=True)
         self._colony_thread.start()
+
+    def _prefill_colony(self) -> None:
+        """Fill colony cargo capacity and jump ranges from the journal (once)."""
+        if self._colony_prefilled:
+            return
+        try:
+            import colonisation as col
+
+            capacity = col.read_cargo_capacity()
+            if capacity:
+                self.client.ui_set("COLCARGO", str(capacity))
+            unladen = col.read_jump_range()
+            if unladen:
+                self.client.ui_set("COLUNLADEN", str(round(unladen, 1)))
+                # Laden range isn't in the journal; seed a conservative estimate the
+                # player can correct from the in-game FSD panel.
+                self.client.ui_set("COLLADEN", str(round(unladen * 0.6, 1)))
+            self._colony_prefilled = True
+        except Exception:  # noqa: BLE001 - prefill is best-effort
+            pass
 
     def _read_colony_cargo(self) -> int:
         return self._read_int("COLCARGO", 720)
@@ -613,6 +662,16 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             return max(1, int(float(raw)))
         except (TypeError, ValueError):
             return default
+
+    def _read_float(self, control: str) -> float | None:
+        raw = str(self.client.ui_get(control) or "").strip().replace(",", "")
+        if not raw:
+            return None
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            return None
+        return value if value > 0 else None
 
     def _set_colony_status(self, message: str) -> None:
         # Worker thread: store only; the main-loop pump pushes it to the control.
