@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.3
+
+- Cargo routing: fixed a confusing "Could not reach Spansh: HTTP Error 400" when starting from a system Spansh has no data for (deep/unexplored space). Spansh HTTP errors are now reported with a clear message, and an unknown start system explains itself and asks for one nearer populated space.
+- Cargo start system now refreshes to your current location each time you open Cargo mode (unless you have typed your own), so it no longer goes stale after you have moved.
+
 ## 0.7.2
 
 - Added the **Firsts Radar**: a standalone, colour-coded window that tails the journal and flags, live, which bodies in your current system still offer a first discovery / first map / first footfall (plus likely-first-logged bio in undiscovered systems), with per-body **exploration value estimates** (MattG's formula) and a system total.

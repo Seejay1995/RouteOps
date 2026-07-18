@@ -157,6 +157,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self._cargo_status_shown: str = ""
         self._cargo_prefilled = False
         self._cargo_pad_large = True
+        self._cargo_sys_prefill = ""
         self._context_menus_registered = False
         self.mode = "exo"
         # Live telemetry state (populated from EDDiscovery edduievent/newtarget pushes).
@@ -500,19 +501,22 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         The station is left blank on purpose: cargo generation finds the nearest
         real market itself (routing there for the first buy if needed).
         """
-        if self._cargo_prefilled:
-            return
         try:
             import colonisation as col
 
-            if not str(self.client.ui_get("CARGOSYS") or "").strip():
-                system = col.read_current_system()
-                if system:
-                    self.client.ui_set("CARGOSYS", system)
-            capacity = col.read_cargo_capacity()
-            if capacity:
-                self.client.ui_set("CARGOCARGO", str(capacity))
-            self._cargo_prefilled = True
+            # Cargo capacity: fill once from the latest Loadout.
+            if not self._cargo_prefilled:
+                capacity = col.read_cargo_capacity()
+                if capacity:
+                    self.client.ui_set("CARGOCARGO", str(capacity))
+                self._cargo_prefilled = True
+            # Start system: keep it on your CURRENT location each time you enter cargo
+            # mode, unless you've typed your own (so it never goes stale in deep space).
+            current = col.read_current_system()
+            field = str(self.client.ui_get("CARGOSYS") or "").strip()
+            if current and (not field or field == self._cargo_sys_prefill):
+                self.client.ui_set("CARGOSYS", current)
+                self._cargo_sys_prefill = current
         except Exception:  # noqa: BLE001 - prefill is best-effort
             pass
 

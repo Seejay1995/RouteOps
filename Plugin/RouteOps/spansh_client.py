@@ -29,7 +29,26 @@ ProgressCallback = Callable[[str], None]
 
 
 class SpanshError(Exception):
-    """A recoverable Spansh generation failure with a user-facing message."""
+    """A recoverable Spansh generation failure with a user-facing message.
+
+    ``status`` is the HTTP status when Spansh rejected the request (e.g. 400 for an
+    unknown reference system), or None for network/other failures.
+    """
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
+
+
+def _http_error(exc: "urllib.error.HTTPError") -> SpanshError:
+    message = None
+    try:
+        body = json.load(exc)
+        if isinstance(body, dict):
+            message = body.get("error")
+    except Exception:
+        message = None
+    return SpanshError(str(message) if message else f"Spansh rejected the request (HTTP {exc.code}).", status=exc.code)
 
 
 def _post(path: str, params: dict[str, Any], timeout: float = 30.0) -> Any:
@@ -39,12 +58,9 @@ def _post(path: str, params: dict[str, Any], timeout: float = 30.0) -> Any:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.load(response)
     except urllib.error.HTTPError as exc:
-        # Spansh returns a JSON {"error": ...} body on 4xx (e.g. missing params).
-        try:
-            body = json.load(exc)
-        except Exception:
-            raise SpanshError(f"Spansh HTTP {exc.code}") from exc
-        raise SpanshError(str(body.get("error") or f"Spansh HTTP {exc.code}")) from exc
+        raise _http_error(exc) from exc
+    except urllib.error.HTTPError as exc:
+        raise _http_error(exc) from exc
     except (urllib.error.URLError, OSError) as exc:
         raise SpanshError(f"Could not reach Spansh: {exc}") from exc
     except json.JSONDecodeError as exc:
@@ -56,6 +72,8 @@ def _get(path: str, timeout: float = 30.0) -> Any:
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise _http_error(exc) from exc
     except (urllib.error.URLError, OSError) as exc:
         raise SpanshError(f"Could not reach Spansh: {exc}") from exc
     except json.JSONDecodeError as exc:
@@ -71,6 +89,8 @@ def _jpost(path: str, body: dict[str, Any], timeout: float = 30.0) -> Any:
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise _http_error(exc) from exc
     except (urllib.error.URLError, OSError) as exc:
         raise SpanshError(f"Could not reach Spansh: {exc}") from exc
     except json.JSONDecodeError as exc:
@@ -93,7 +113,15 @@ def find_nearest_trade_station(
         "sort": [{"distance": {"direction": "asc"}}],
         "size": 30,
     }
-    data = _jpost("/stations/search", body, timeout=timeout)
+    try:
+        data = _jpost("/stations/search", body, timeout=timeout)
+    except SpanshError as exc:
+        if getattr(exc, "status", None) == 400:  # bad request == unknown reference system
+            raise SpanshError(
+                f"Spansh has no data for '{system}' - the system may be unexplored. "
+                "Enter a start system nearer populated space."
+            ) from exc
+        raise  # transient server errors (500/429/etc.) keep Spansh's own message
     for station in data.get("results", []) if isinstance(data, dict) else []:
         name = str(station.get("name") or "")
         stype = str(station.get("type") or "")
@@ -235,11 +263,13 @@ def find_commodity_sources(
     limit: int = 5,
     timeout: float = 25.0,
 ) -> list[dict[str, Any]]:
-    """Return stations that SELL ``commodity``, nearest to ``reference_system`` first.
+    """Return stations that SELL ``commodity``, NEAREST to ``reference_system`` first.
 
-    Uses Spansh's ``/api/commodity/buy/{system}/{commodity}/{amount}`` endpoint
-    (already distance-sorted). Each source carries the buy price, available
-    supply, pad availability and distances so RouteOps can rank and plan trips.
+    Uses Spansh's ``/api/commodity/buy/{system}/{commodity}/{amount}`` endpoint.
+    That endpoint is NOT distance-sorted (it ranks by a buy-deal heuristic), so we
+    collect the qualifying stations and re-sort by distance ourselves — the whole
+    point for colony hauling is to prefer the fewest-jump source. Each source
+    carries buy price, supply, pad availability and distances.
     """
     path = (
         "/commodity/buy/"
@@ -279,9 +309,12 @@ def find_commodity_sources(
                 "market_updated_at": station.get("market_updated_at"),
             }
         )
-        if len(sources) >= limit:
-            break
-    return sources
+        if len(sources) >= 100:
+            break  # bound the candidate pool; plenty to pick the nearest from
+    sources.sort(
+        key=lambda s: s["distance_ly"] if isinstance(s.get("distance_ly"), (int, float)) else float("inf")
+    )
+    return sources[:limit]
 
 
 # --------------------------------------------------------------------------- #
