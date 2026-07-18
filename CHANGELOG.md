@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.4
+
+- Cargo tab overhaul: fixed the missing column headers (a WinForms docking z-order bug - the Fill grids now dock correctly below the mode bar), human-readable credit values (e.g. 13.07M), a running Cumulative-profit column, and a richer status line (hops, total profit, loop distance, profit/hop). Per-hop tooltip now includes profit-per-tonne.
+- Cargo hops capped at 10 (Spansh's trade planner maximum) and the field relabelled, so asking for more no longer silently returns 10.
+
 ## 0.7.3
 
 - Cargo routing: fixed a confusing "Could not reach Spansh: HTTP Error 400" when starting from a system Spansh has no data for (deep/unexplored space). Spansh HTTP errors are now reported with a clear message, and an unknown start system explains itself and asks for one nearer populated space.

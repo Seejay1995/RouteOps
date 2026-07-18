@@ -793,9 +793,12 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
 
             hops = result.get("hops", [])
             profit = cargo_mod.total_profit(result)
+            distance = cargo_mod.total_distance(result)
             start = result.get("start_station") or result.get("start_system") or ""
+            per_hop = profit // len(hops) if hops else 0
             self.client.ui_set(
-                "CARGOSTATUS", f"From {start}: {len(hops)} hops  |  {profit:,} CR profit"
+                "CARGOSTATUS",
+                f"From {start}:  {len(hops)} hops  |  {profit:,} CR  |  {distance} ly loop  |  {per_hop:,} CR/hop",
             )
             self.set_mode("cargo")
             self.client.ui_suspend("CARGOGRID")

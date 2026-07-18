@@ -356,7 +356,7 @@ def generate_trade(
     if not system:
         raise SpanshError("A start system is required for a cargo route.")
     params = {
-        "max_hops": int(max_hops),
+        "max_hops": max(1, min(int(max_hops), 10)),  # Spansh caps trade routes at 10 hops
         "max_hop_distance": max_hop_distance,
         "max_system_distance": max_system_distance,
         "starting_capital": int(starting_capital),

@@ -4,7 +4,7 @@ ENABLED True
 
 INSTALL LongDescription="RouteOps navigation-first EDDiscovery operations panel UI"
 INSTALL ShortDescription="RouteOps UI"
-INSTALL Version=0.7.3.0
+INSTALL Version=0.7.4.0
 INSTALL MinEDVersion=19.0.0.0
 INSTALL Location=.
 
@@ -12,15 +12,18 @@ EVENT onStartup, onStartup, "", Condition AlwaysTrue
 
 PROGRAM onStartup
 
-DialogEntry controls,MODEBAR,flowpanel,"",0,0,1,32,"Switch RouteOps mode: Exobiology routing or Colonisation supply","",Top,"","",Horizontal
+rem Fill grids are declared FIRST so they dock LAST and fill the true remaining area
+rem below every Top/Bottom bar (WinForms docks highest child-index first). Declaring a
+rem Top bar (MODEBAR) before them made it dock last and overlap the grid header.
+DialogEntry controls,DGV,dgv,"",10,10,10,10,"System navigation queue","",Fill,"","",0;(text,"#",38,Numeric),(text,"System",205),(text,"Bodies",55),(text,"Active",55),(text,"Targets",75),(text,"Active Value",105),(text,"Manifest",85),(text,"State",90)
+DialogEntry controls,COLGRID,dgv,"",10,10,10,10,"Colony commodity sourcing board (right side scrolls)","",Fill,"","",0;(text,"Commodity",150),(text,"Need",70,Numeric),(text,"Trips",50,Numeric),(text,"Jumps",52,Numeric),(text,"Best Source",240),(text,"Dist ly",60,Numeric),(text,"Buy CR",72,Numeric),(text,"Supply",90,Numeric)
+DialogEntry controls,CARGOGRID,dgv,"",10,10,10,10,"Cargo trade route hops: buy at, fly to, sell","",Fill,"","",0;(text,"Hop",40,Numeric),(text,"Commodity",158),(text,"Buy at",236),(text,"Sell at",236),(text,"Ly",50,Numeric),(text,"Profit",92),(text,"Cumulative",104)
+
+DialogEntry controls,MODEBAR,flowpanel,"",0,0,1,32,"Switch RouteOps mode: Exobiology, Colonisation, or Cargo","",Top,"","",Horizontal
 DialogEntry controls,MODE_EXO,Button,"[ Exobiology ]",0,0,110,28,"Exobiology routing: load or generate routes and triage species","MODEBAR"
 DialogEntry controls,MODE_COLONY,Button,"Colonisation",0,0,110,28,"Colonisation supply: source your colony construction commodities from the journal","MODEBAR"
 DialogEntry controls,MODE_CARGO,Button,"Cargo",0,0,90,28,"Cargo/trade: generate a profit-optimised hauling route from Spansh","MODEBAR"
 DialogEntry controls,FIRSTS_RADAR,Button,"Firsts Radar",0,0,100,28,"Open the standalone Firsts Radar window: live first discovery / map / footfall tracker with value estimates","MODEBAR"
-
-DialogEntry controls,DGV,dgv,"",10,10,10,10,"System navigation queue","",Fill,"","",0;(text,"#",38,Numeric),(text,"System",205),(text,"Bodies",55),(text,"Active",55),(text,"Targets",75),(text,"Active Value",105),(text,"Manifest",85),(text,"State",90)
-DialogEntry controls,COLGRID,dgv,"",10,10,10,10,"Colony commodity sourcing board (right side scrolls)","",Fill,"","",0;(text,"Commodity",150),(text,"Need",70,Numeric),(text,"Trips",50,Numeric),(text,"Jumps",52,Numeric),(text,"Best Source",240),(text,"Dist ly",60,Numeric),(text,"Buy CR",72,Numeric),(text,"Supply",90,Numeric)
-DialogEntry controls,CARGOGRID,dgv,"",10,10,10,10,"Cargo trade route hops","",Fill,"","",0;(text,"Hop",42,Numeric),(text,"Commodity",160),(text,"From",200),(text,"To",200),(text,"Dist ly",60,Numeric),(text,"Buy CR",72,Numeric),(text,"Sell CR",72,Numeric),(text,"Profit",90,Numeric)
 
 DialogEntry controls,BODIES,dgv,"",0,0,1,172,"Selected system body manifest","",Bottom,"","",0;(text,"Order",48,Numeric),(text,"Body",210),(text,"Distance",82),(text,"Bio",45),(text,"Targets",120),(text,"Scans",62),(text,"Active Value",105),(text,"State",92)
 DialogEntry controls,ORGANISMS,dgv,"",0,0,1,190,"Selected body species triage","",Bottom,"","",0;(text,"Decision",68),(text,"Certainty",88),(text,"Species",210),(text,"Variant",145),(text,"Scans",55),(text,"Value",105),(text,"Difficulty",82),(text,"Source",85)
@@ -102,7 +105,7 @@ DialogEntry controls,CARGOSTN,textbox,"",0,0,118,26,"Optional start station. Lea
 DialogEntry controls,CLCARGO,label,"Cargo",0,7,42,20,"Ship cargo capacity in tonnes","CARGOBAR"
 DialogEntry controls,CARGOCARGO,textbox,"720",0,0,46,26,"Your ship cargo capacity in tonnes","CARGOBAR"
 DialogEntry controls,CLHOPS,label,"Hops",0,7,34,20,"Maximum hops in the loop","CARGOBAR"
-DialogEntry controls,CARGOHOPS,textbox,"5",0,0,36,26,"Maximum number of hops in the loop","CARGOBAR"
+DialogEntry controls,CARGOHOPS,textbox,"10",0,0,36,26,"Number of hops in the loop (1-10; Spansh's maximum is 10)","CARGOBAR"
 DialogEntry controls,CARGOPAD,Button,"Pad: Large only",0,0,110,28,"Click to toggle between large-pad-only and any-pad sources","CARGOBAR"
 DialogEntry controls,CARGO_GO,Button,"Cargo Route",0,0,92,28,"Generate a profit-optimised cargo/trade route from Spansh","CARGOBAR"
 DialogEntry controls,CARGOSTATUS,label,"Start system auto-fills. Leave station blank for nearest market.",0,7,300,20,"Cargo routing status","CARGOBAR"
@@ -110,7 +113,7 @@ DialogEntry controls,CARGOSTATUS,label,"Start system auto-fills. Leave station b
 DialogEntry controls,HEADER,richtextbox,"",0,0,1,96,"Navigation summary","",Top,"",""
 
 DialogControl UC, AddRange controls
-DialogControl UC, setescape HEADER="RouteOps v0.7.3 starting...\r\nLoading navigation, route state, route library, and runtime health."
+DialogControl UC, setescape HEADER="RouteOps v0.7.4 starting...\r\nLoading navigation, route state, route library, and runtime health."
 DialogControl UC, setescape DETAIL="Use Route Library to inspect recent routes or Health to inspect the portable installation."
 
 END PROGRAM
