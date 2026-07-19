@@ -54,6 +54,13 @@ def _norm(value: Any) -> str:
     return str(value or "").strip().casefold()
 
 
+def squash(value: Any) -> str:
+    """Collapse a commodity name to letters+digits only, so Spansh's display names
+    ("Liquid oxygen", "Reactive Armour") match the journal's internal Type
+    ("liquidoxygen", "reactivearmour") and its localised name alike."""
+    return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+
+
 def _commodity_label(hop: dict[str, Any]) -> str:
     parts = [f"{c.get('name')} x{c.get('amount')}" for c in (hop.get("commodities") or []) if c.get("name")]
     return " + ".join(parts) or "cargo"
@@ -72,9 +79,9 @@ def build_stops(result: Any) -> list[dict[str, Any]]:
         prev = hops[k - 1] if k > 0 else None
         stops.append({
             "system": src.get("system"), "station": src.get("station"), "hop": k,
-            "sell": {_norm(c.get("name")) for c in (prev.get("commodities") or [])} if prev else set(),
+            "sell": {squash(c.get("name")) for c in (prev.get("commodities") or [])} if prev else set(),
             "sell_label": _commodity_label(prev) if prev else "",
-            "buy": {_norm(c.get("name")) for c in (hop.get("commodities") or [])},
+            "buy": {squash(c.get("name")) for c in (hop.get("commodities") or [])},
             "buy_label": _commodity_label(hop),
             "fly_system": dst.get("system"), "fly_station": dst.get("station"),
         })
@@ -83,7 +90,7 @@ def build_stops(result: Any) -> list[dict[str, Any]]:
         ldst = last.get("destination") or {}
         stops.append({
             "system": ldst.get("system"), "station": ldst.get("station"), "hop": n - 1,
-            "sell": {_norm(c.get("name")) for c in (last.get("commodities") or [])},
+            "sell": {squash(c.get("name")) for c in (last.get("commodities") or [])},
             "sell_label": _commodity_label(last),
             "buy": set(), "buy_label": "",
             "fly_system": None, "fly_station": None,

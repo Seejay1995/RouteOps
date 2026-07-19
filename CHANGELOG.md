@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.14
+
+- Cargo checklist: fixed Buy/Sell steps not ticking. Commodity names are now matched by a squashed key (letters+digits only), so Spansh's display names ("Liquid oxygen", "Reactive Armour") match the journal's internal Type ("liquidoxygen", "reactivearmour") - and MarketSell events, which carry no localised name, match too.
+
 ## 0.7.13
 
 - Cargo: the run checklist is now stop-by-stop instead of one big block. It shows only the station you are at - Sell / Buy / Fly - ticking each as the journal reports it (MarketSell, MarketBuy, Docked), advances to the next station when you dock, and previews the next stop.

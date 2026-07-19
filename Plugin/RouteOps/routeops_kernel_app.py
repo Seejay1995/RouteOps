@@ -982,6 +982,23 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
     def _norm(value: Any) -> str:
         return str(value or "").strip().casefold()
 
+    def _commodity_key(self, entry: dict[str, Any]) -> str:
+        """A squashed key for the bought/sold commodity that matches Spansh's names.
+        MarketSell often lacks Type_Localised, and Type can be a '$xxx_name;' symbol."""
+        for field in ("Type_Localised", "Type"):
+            raw = entry.get(field)
+            if not raw:
+                continue
+            text = str(raw)
+            if text.startswith("$") and text.endswith(";"):
+                text = text[1:-1]
+                if text.endswith("_name"):
+                    text = text[:-5]
+            key = "".join(ch for ch in text.lower() if ch.isalnum())
+            if key:
+                return key
+        return ""
+
     def _arm_cargo_steps(self) -> None:
         import cargo as cargo_mod
 
@@ -1055,7 +1072,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                 self._goto_stop(idx)
                 changed = True
         elif event == "MarketSell":
-            commodity = self._norm(entry.get("Type_Localised") or entry.get("Type"))
+            commodity = self._commodity_key(entry)
             if commodity in s["sell"]:
                 self._cargo_sold = True
                 changed = True
@@ -1066,7 +1083,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                     self._cargo_sold = True
                     changed = True
         elif event == "MarketBuy":
-            commodity = self._norm(entry.get("Type_Localised") or entry.get("Type"))
+            commodity = self._commodity_key(entry)
             target = cur if commodity in s["buy"] else self._find_stop(buy=commodity)
             if target is not None:
                 if target != cur:
