@@ -985,7 +985,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
     def _commodity_key(self, entry: dict[str, Any]) -> str:
         """A squashed key for the bought/sold commodity that matches Spansh's names.
         MarketSell often lacks Type_Localised, and Type can be a '$xxx_name;' symbol."""
-        for field in ("Type_Localised", "Type"):
+        for field in ("Type_Localised", "FriendlyType", "Type"):
             raw = entry.get(field)
             if not raw:
                 continue
@@ -1062,7 +1062,9 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         stops = self._cargo_stops
         if not stops:
             return
-        event = entry.get("event")
+        # EDDiscovery serialises journal entries with EventTypeID (not raw "event").
+        event = (entry.get("EventTypeID") or entry.get("EventTypeStr")
+                 or entry.get("event") or entry.get("Event"))
         cur = min(self._cargo_stop, len(stops) - 1)
         s = stops[cur]
         changed = False

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.15
+
+- Cargo checklist now actually ticks live. EDDiscovery forwards journal entries to panels with the event name under EventTypeID (not the raw "event" key), so MarketBuy/MarketSell/Docked were never recognised; the tracker now reads EventTypeID (matching the exo path) and also accepts FriendlyType for the commodity name.
+
 ## 0.7.14
 
 - Cargo checklist: fixed Buy/Sell steps not ticking. Commodity names are now matched by a squashed key (letters+digits only), so Spansh's display names ("Liquid oxygen", "Reactive Armour") match the journal's internal Type ("liquidoxygen", "reactivearmour") - and MarketSell events, which carry no localised name, match too.
