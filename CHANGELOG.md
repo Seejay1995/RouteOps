@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.10
+
+- Cargo: added Route shape toggle (Loop vs One-way) - RouteOps now sends Spansh's loop parameter, so you can get a one-way run instead of always looping back to the start.
+- Cargo: added a Max Ls filter - cap how far stations can be from the star (Spansh max_distance), for closer/faster stops. Blank = no limit.
+
 ## 0.7.9
 
 - Cargo: Space-only mode now actually excludes planetary/surface ports. The auto-found start station ignored the filter (so near Sol, where the nearest markets are all planetary, it forced a surface station into the route); the nearest-market search now applies is_planetary=false when Space-only is selected. Spansh's trade planner already excludes planetary from the rest of the loop.

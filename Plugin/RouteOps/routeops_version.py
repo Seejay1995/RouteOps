@@ -8,6 +8,6 @@ must never import RouteOps).
 
 from __future__ import annotations
 
-VERSION = "0.7.9.0"
-# Short human banner form, e.g. "v0.7.9"
+VERSION = "0.7.10.0"
+# Short human banner form, e.g. "v0.7.10"
 DISPLAY_VERSION = "v" + ".".join(VERSION.split(".")[:3])

@@ -164,6 +164,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self._cargo_prefilled = False
         self._cargo_pad_large = True
         self._cargo_planetary = True
+        self._cargo_loop = True
         self._cargo_sys_prefill = ""
         # Live trade-run tracking: the generated route + which hop is in progress.
         self._cargo_route: dict[str, Any] | None = None
@@ -364,6 +365,12 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             self._cargo_planetary = not self._cargo_planetary
             self.client.ui_set(
                 "CARGOPLANET", "Stations: Any" if self._cargo_planetary else "Stations: Space only"
+            )
+            return
+        if control == "CARGOLOOP":
+            self._cargo_loop = not self._cargo_loop
+            self.client.ui_set(
+                "CARGOLOOP", "Route: Loop" if self._cargo_loop else "Route: One-way"
             )
             return
         if control == "CARGO_SAVE":
@@ -810,6 +817,8 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         max_hops = self._read_int("CARGOHOPS", 5)
         large_pad_only = self._cargo_pad_large
         planetary = self._cargo_planetary
+        loop = self._cargo_loop
+        max_ls = self._read_int("CARGOMAXLS", 0)
         self._cargo_result = None
         self._cargo_error = None
         self._cargo_status = "Contacting Spansh..."
@@ -826,6 +835,8 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                     max_hops=max_hops,
                     large_pad_only=large_pad_only,
                     allow_planetary=planetary,
+                    loop=loop,
+                    max_arrival_distance=(max_ls or None),
                     on_progress=self._set_cargo_status,
                 )
                 self._cargo_result = route

@@ -353,6 +353,8 @@ def generate_trade(
     starting_capital: int = 100_000_000,
     allow_planetary: bool = True,
     unique: bool = True,
+    loop: bool = True,
+    max_arrival_distance: int | None = None,
     poll_timeout: float = 180.0,
     on_progress: ProgressCallback | None = None,
 ) -> dict[str, Any]:
@@ -378,8 +380,11 @@ def generate_trade(
         "requires_large_pad": 1 if large_pad_only else 0,
         "allow_planetary": 1 if allow_planetary else 0,
         "unique": 1 if unique else 0,
+        "loop": 1 if loop else 0,
         "permit": 0,
     }
+    if max_arrival_distance:
+        params["max_distance"] = int(max_arrival_distance)  # max station distance from arrival (Ls)
     approach: dict[str, Any] | None = None
 
     def with_found() -> list[dict[str, Any]]:

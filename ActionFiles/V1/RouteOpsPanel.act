@@ -4,7 +4,7 @@ ENABLED True
 
 INSTALL LongDescription="RouteOps executes EDDiscovery expedition and RouteOps JSON routes with waypoint, exploration, exobiology, materials, trade, cargo, and carrier specialties."
 INSTALL ShortDescription="RouteOps operations navigator"
-INSTALL Version=0.7.9.0
+INSTALL Version=0.7.10.0
 INSTALL MinEDVersion=19.0.0.0
 INSTALL Location=Actions
 
@@ -19,5 +19,5 @@ END PROGRAM
 
 PROGRAM onInstall
 If InstallList Contains RouteOpsPanel;
-    MessageBox "RouteOps 0.7.9 installed. Restart EDDiscovery, then use the panel selector (+) to add RouteOps as a tab or pop-out.", OK
+    MessageBox "RouteOps 0.7.10 installed. Restart EDDiscovery, then use the panel selector (+) to add RouteOps as a tab or pop-out.", OK
 END PROGRAM
