@@ -4,7 +4,7 @@ ENABLED True
 
 INSTALL LongDescription="RouteOps navigation-first EDDiscovery operations panel UI"
 INSTALL ShortDescription="RouteOps UI"
-INSTALL Version=0.7.11.0
+INSTALL Version=0.7.12.0
 INSTALL MinEDVersion=19.0.0.0
 INSTALL Location=.
 
@@ -107,6 +107,8 @@ DialogEntry controls,CLCARGO,label,"Cargo",0,7,42,20,"Ship cargo capacity in ton
 DialogEntry controls,CARGOCARGO,textbox,"720",0,0,46,26,"Your ship cargo capacity in tonnes","CARGOBAR"
 DialogEntry controls,CLHOPS,label,"Hops",0,7,34,20,"Maximum hops in the loop","CARGOBAR"
 DialogEntry controls,CARGOHOPS,textbox,"10",0,0,36,26,"Number of hops in the loop (1-10; Spansh's maximum is 10)","CARGOBAR"
+DialogEntry controls,CLJUMP,label,"Jump ly",0,7,48,20,"Your jump range - max ly per hop. Auto-filled from your ship; use your laden range for best results","CARGOBAR"
+DialogEntry controls,CARGOJUMP,textbox,"",0,0,44,26,"Max jump distance per hop in light years - auto-filled from your ship's MaxJumpRange; lower it to your laden range if needed","CARGOBAR"
 DialogEntry controls,CARGOPAD,Button,"Pad: Large only",0,0,110,28,"Click to toggle between large-pad-only and any-pad sources","CARGOBAR"
 DialogEntry controls,CARGOPLANET,Button,"Stations: Any",0,0,120,28,"Click to toggle between any station and space-only (exclude planetary/surface ports)","CARGOBAR"
 DialogEntry controls,CARGOLOOP,Button,"Route: Loop",0,0,110,28,"Toggle between a repeatable loop (returns to start) and a one-way run","CARGOBAR"
@@ -120,7 +122,7 @@ DialogEntry controls,CARGOSTATUS,label,"Start system auto-fills. Leave station b
 DialogEntry controls,HEADER,richtextbox,"",0,0,1,96,"Navigation summary","",Top,"",""
 
 DialogControl UC, AddRange controls
-DialogControl UC, setescape HEADER="RouteOps v0.7.11 starting...\r\nLoading navigation, route state, route library, and runtime health."
+DialogControl UC, setescape HEADER="RouteOps v0.7.12 starting...\r\nLoading navigation, route state, route library, and runtime health."
 DialogControl UC, setescape DETAIL="Use Route Library to inspect recent routes or Health to inspect the portable installation."
 
 END PROGRAM

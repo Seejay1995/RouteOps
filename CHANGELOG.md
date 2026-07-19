@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.12
+
+- Cargo: routes now optimise to YOUR jump range. Previously max hop distance was hardcoded to 50 ly; there is now a Jump ly field, auto-filled from your ship's MaxJumpRange, passed to Spansh as max_hop_distance so hops fit your range (lower it to your laden range for one-jump hops).
+
 ## 0.7.11
 
 - Cargo: added a live run-checklist pane at the bottom of the Cargo view. It lists each Buy / Fly-and-dock / Sell step and auto-ticks them from your journal as you play (MarketBuy, Docked, MarketSell), marking the current action with >>> and copying the next system to your clipboard when you buy. Survives Save/Load.

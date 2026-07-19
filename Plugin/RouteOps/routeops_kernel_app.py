@@ -540,11 +540,14 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         try:
             import colonisation as col
 
-            # Cargo capacity: fill once from the latest Loadout.
+            # Cargo capacity + jump range: fill once from the latest Loadout.
             if not self._cargo_prefilled:
                 capacity = col.read_cargo_capacity()
                 if capacity:
                     self.client.ui_set("CARGOCARGO", str(capacity))
+                jump = col.read_jump_range()
+                if jump:
+                    self.client.ui_set("CARGOJUMP", str(round(jump, 1)))
                 self._cargo_prefilled = True
             # Start system: keep it on your CURRENT location each time you enter cargo
             # mode, unless you've typed your own (so it never goes stale in deep space).
@@ -822,6 +825,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         planetary = self._cargo_planetary
         loop = self._cargo_loop
         max_ls = self._read_int("CARGOMAXLS", 0)
+        jump_ly = self._read_int("CARGOJUMP", 0)
         self._cargo_result = None
         self._cargo_error = None
         self._cargo_status = "Contacting Spansh..."
@@ -836,6 +840,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                     station=station,
                     cargo=cargo,
                     max_hops=max_hops,
+                    max_hop_distance=float(jump_ly) if jump_ly else 50.0,
                     large_pad_only=large_pad_only,
                     allow_planetary=planetary,
                     loop=loop,
