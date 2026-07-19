@@ -92,6 +92,12 @@ _BODIES_MENU: list[tuple[str, str]] = [
     ("BODYDEFAULT", "Reset body filter"),
     ("RESETSTOP", "Reset body"),
 ]
+_CARGO_MENU: list[tuple[str, str]] = [
+    ("CARGO_COPYDEST", "Copy destination system"),
+    ("CARGO_COPYSRC", "Copy buy (source) system"),
+    ("CARGO_SETCUR", "Set as current hop"),
+    ("CARGO_SKIP", "Skip / un-skip this hop"),
+]
 
 # Controls shown only in Exobiology mode vs only in Colonisation mode. The mode
 # switcher (MODEBAR) toggles these via ui_visible so each modality gets the whole
@@ -161,6 +167,8 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         # Live trade-run tracking: the generated route + which hop is in progress.
         self._cargo_route: dict[str, Any] | None = None
         self._cargo_hop = 0
+        self._cargo_row_hops: list[int | None] = []
+        self._cargo_skipped: set[int] = set()
         self._context_menus_registered = False
         self.mode = "exo"
         # Live telemetry state (populated from EDDiscovery edduievent/newtarget pushes).
@@ -367,6 +375,9 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         if control in ("BODIES", "ORGANISMS") and self._is_menu_tag(tag):
             self._handle_context_menu(control, tag, self._extract_row_index(message))
             return
+        if control == "CARGOGRID" and isinstance(tag, str) and tag.startswith("CARGO_"):
+            self._handle_cargo_menu(tag, self._extract_row_index(message))
+            return
         if control == "HEALTH":
             self.run_health_check(export=False)
             return
@@ -534,7 +545,39 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self.client.ui_right_click_menu(
             "BODIES", [tag for tag, _ in _BODIES_MENU], [text for _, text in _BODIES_MENU]
         )
+        self.client.ui_right_click_menu(
+            "CARGOGRID", [tag for tag, _ in _CARGO_MENU], [text for _, text in _CARGO_MENU]
+        )
         self._context_menus_registered = True
+
+    def _handle_cargo_menu(self, tag: str, row: int | None) -> None:
+        route = self._cargo_route
+        hops = (route or {}).get("hops") or []
+        if row is None or row < 0 or row >= len(self._cargo_row_hops):
+            return
+        hop_idx = self._cargo_row_hops[row]
+        if hop_idx is None or hop_idx >= len(hops):
+            return
+        hop = hops[hop_idx]
+        destination = hop.get("destination") or {}
+        source = hop.get("source") or {}
+        if tag == "CARGO_COPYDEST":
+            ok = self._copy_system(destination.get("system"))
+            self.client.ui_set("CARGOSTATUS", f"Copied destination: {destination.get('system')}" + ("" if ok else " (copy failed)"))
+        elif tag == "CARGO_COPYSRC":
+            ok = self._copy_system(source.get("system"))
+            self.client.ui_set("CARGOSTATUS", f"Copied buy system: {source.get('system')}" + ("" if ok else " (copy failed)"))
+        elif tag == "CARGO_SETCUR":
+            self._cargo_hop = hop_idx
+            ok = self._copy_system(destination.get("system"))
+            self.client.ui_set("CARGOSTATUS", f"Current hop {hop_idx + 1}: sell at {destination.get('system')}" + ("  (copied)" if ok else ""))
+            self._render_cargo()
+        elif tag == "CARGO_SKIP":
+            if hop_idx in self._cargo_skipped:
+                self._cargo_skipped.discard(hop_idx)
+            else:
+                self._cargo_skipped.add(hop_idx)
+            self._render_cargo()
 
     # --- Spansh route generation (threaded) ---------------------------------
     def _start_spansh_generation(self) -> None:
@@ -806,6 +849,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             # Arm live trade-run tracking and copy the first buy system to the clipboard.
             self._cargo_route = result
             self._cargo_hop = 0
+            self._cargo_skipped = set()
             first_source = (hops[0].get("source") or {}) if hops else {}
             start_system = first_source.get("system") or result.get("start_system")
             copied = self._copy_system(start_system)
@@ -834,11 +878,12 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             return
         import cargo as cargo_mod
 
+        rows, self._cargo_row_hops = cargo_mod.build_cargo_grid(
+            self._cargo_route, self._cargo_hop, self._cargo_skipped
+        )
         self.client.ui_suspend("CARGOGRID")
         self.client.ui_clear("CARGOGRID")
-        self.client.ui_add_set_rows(
-            "CARGOGRID", cargo_mod.route_to_rows(self._cargo_route, self._cargo_hop)
-        )
+        self.client.ui_add_set_rows("CARGOGRID", rows)
         self.client.ui_resume("CARGOGRID")
 
     @staticmethod
@@ -862,8 +907,9 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             match = None
             for step in range(count):
                 idx = (self._cargo_hop + step) % count
-                first = (hops[idx].get("commodities") or [{}])[0]
-                if self._norm(first.get("name")) == bought:
+                if idx in self._cargo_skipped:
+                    continue
+                if any(self._norm(c.get("name")) == bought for c in (hops[idx].get("commodities") or [])):
                     match = idx
                     break
             if match is None:

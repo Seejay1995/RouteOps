@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.6
+
+- Cargo: fixed hops showing only one commodity - Spansh often fills the hold with several commodities per hop, and all of them are now listed (each as its own row) so you buy the full load. Hold tonnage shown in the hop tooltip.
+- Cargo: right-click a hop for Copy destination system, Copy buy (source) system, Set as current hop, and Skip / un-skip this hop. Skipped hops are marked and excluded from live tracking.
+- Cargo live tracking now matches a buy against every commodity in a hop (not just the first), so buying any part of a multi-commodity load advances the run.
+
 ## 0.7.5
 
 - Cargo tab now tracks your trade run live: after you generate a route it copies the first buy system to your clipboard, and each time you buy a hop's commodity in-game it copies that hop's destination system to the clipboard - paste straight into the galaxy map to plot. Docking at a hop's sell point is recognised too. The active hop is marked in the grid.
