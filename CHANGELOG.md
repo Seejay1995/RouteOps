@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.9
+
+- Cargo: Space-only mode now actually excludes planetary/surface ports. The auto-found start station ignored the filter (so near Sol, where the nearest markets are all planetary, it forced a surface station into the route); the nearest-market search now applies is_planetary=false when Space-only is selected. Spansh's trade planner already excludes planetary from the rest of the loop.
+
 ## 0.7.8
 
 - Cargo: fixed intermittent "Failed: Could not perform search" when auto-finding the nearest market. The station search used the wrong Spansh filter field ("market" instead of "has_market"), which made Spansh 500 about two-thirds of the time; it now uses the correct field and retries transient server errors.

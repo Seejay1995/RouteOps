@@ -98,7 +98,7 @@ def _jpost(path: str, body: dict[str, Any], timeout: float = 30.0) -> Any:
 
 
 def find_nearest_trade_station(
-    system: str, *, large_pad_only: bool = True, timeout: float = 30.0
+    system: str, *, large_pad_only: bool = True, allow_planetary: bool = True, timeout: float = 30.0
 ) -> dict[str, Any] | None:
     """Find the nearest real market station to ``system`` (for a cargo-route start).
 
@@ -109,6 +109,8 @@ def find_nearest_trade_station(
     filters: dict[str, Any] = {"has_market": {"value": True}}
     if large_pad_only:
         filters["has_large_pad"] = {"value": True}
+    if not allow_planetary:
+        filters["is_planetary"] = {"value": False}
     body = {
         "filters": filters,
         "reference_system": str(system).strip(),
@@ -137,6 +139,8 @@ def find_nearest_trade_station(
         if not station.get("has_market") or not station.get("updated_at"):
             continue  # no live market data (construction ships, unstocked carriers)
         if name.startswith("$") or "Colonisation Ship" in name or "Carrier" in stype or "Construction" in name:
+            continue
+        if not allow_planetary and station.get("is_planetary"):
             continue
         return {
             "system": station.get("system_name"),
@@ -382,7 +386,7 @@ def generate_trade(
         nonlocal approach, station
         if on_progress:
             on_progress("Finding nearest trading station...")
-        found = find_nearest_trade_station(system, large_pad_only=large_pad_only)
+        found = find_nearest_trade_station(system, large_pad_only=large_pad_only, allow_planetary=allow_planetary)
         if not found:
             raise SpanshError(f"No large-pad trading station with a market found near {system}.")
         approach = found
