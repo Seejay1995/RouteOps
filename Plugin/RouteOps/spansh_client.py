@@ -104,7 +104,9 @@ def find_nearest_trade_station(
 
     Skips colonisation ships, fleet carriers and stations with no live market data.
     """
-    filters: dict[str, Any] = {"market": {"value": True}}
+    # NB: the boolean field is "has_market" - the "market" filter expects a commodity
+    # list and makes Spansh's search 500 ("Could not perform search") intermittently.
+    filters: dict[str, Any] = {"has_market": {"value": True}}
     if large_pad_only:
         filters["has_large_pad"] = {"value": True}
     body = {
@@ -113,15 +115,22 @@ def find_nearest_trade_station(
         "sort": [{"distance": {"direction": "asc"}}],
         "size": 30,
     }
-    try:
-        data = _jpost("/stations/search", body, timeout=timeout)
-    except SpanshError as exc:
-        if getattr(exc, "status", None) == 400:  # bad request == unknown reference system
-            raise SpanshError(
-                f"Spansh has no data for '{system}' - the system may be unexplored. "
-                "Enter a start system nearer populated space."
-            ) from exc
-        raise  # transient server errors (500/429/etc.) keep Spansh's own message
+    data = None
+    for attempt in range(3):
+        try:
+            data = _jpost("/stations/search", body, timeout=timeout)
+            break
+        except SpanshError as exc:
+            status = getattr(exc, "status", None)
+            if status == 400:  # bad request == unknown reference system
+                raise SpanshError(
+                    f"Spansh has no data for '{system}' - the system may be unexplored. "
+                    "Enter a start system nearer populated space."
+                ) from exc
+            if status in (500, 502, 503) and attempt < 2:
+                time.sleep(1.0)  # transient server error - retry
+                continue
+            raise
     for station in data.get("results", []) if isinstance(data, dict) else []:
         name = str(station.get("name") or "")
         stype = str(station.get("type") or "")

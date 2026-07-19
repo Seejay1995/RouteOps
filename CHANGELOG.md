@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.8
+
+- Cargo: fixed intermittent "Failed: Could not perform search" when auto-finding the nearest market. The station search used the wrong Spansh filter field ("market" instead of "has_market"), which made Spansh 500 about two-thirds of the time; it now uses the correct field and retries transient server errors.
+
 ## 0.7.7
 
 - Cargo: added a Stations filter toggle (Any vs Space only) so you can exclude planetary/surface ports, like the Route Finder.
