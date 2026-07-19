@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.11
+
+- Cargo: added a live run-checklist pane at the bottom of the Cargo view. It lists each Buy / Fly-and-dock / Sell step and auto-ticks them from your journal as you play (MarketBuy, Docked, MarketSell), marking the current action with >>> and copying the next system to your clipboard when you buy. Survives Save/Load.
+
 ## 0.7.10
 
 - Cargo: added Route shape toggle (Loop vs One-way) - RouteOps now sends Spansh's loop parameter, so you can get a one-way run instead of always looping back to the start.

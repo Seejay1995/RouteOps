@@ -50,6 +50,52 @@ def hop_tons(hop: dict[str, Any]) -> int:
     return sum(int(c.get("amount") or 0) for c in (hop.get("commodities") or []))
 
 
+def _norm(value: Any) -> str:
+    return str(value or "").strip().casefold()
+
+
+def _commodity_label(hop: dict[str, Any]) -> str:
+    parts = [f"{c.get('name')} x{c.get('amount')}" for c in (hop.get("commodities") or []) if c.get("name")]
+    return " + ".join(parts) or "cargo"
+
+
+def build_steps(result: Any) -> list[dict[str, Any]]:
+    """A flat Buy -> Fly -> Sell action list for the run checklist. Each step carries
+    the hop index, the commodity name-set (normalised) and the system/station it
+    happens at, so live journal events (MarketBuy / Docked / MarketSell) can tick it."""
+    hops = _hops(result)
+    approach = result.get("approach") if isinstance(result, dict) else None
+    from_system = result.get("from_system") if isinstance(result, dict) else None
+    steps: list[dict[str, Any]] = []
+    if approach and approach.get("system") and approach.get("system") != from_system:
+        steps.append({
+            "kind": "fly", "hop": -1, "commodities": set(),
+            "system": approach.get("system"), "station": approach.get("station"),
+            "text": f"Travel to {approach.get('system')} / {approach.get('station')} to start",
+        })
+    for i, hop in enumerate(hops):
+        src = hop.get("source") or {}
+        dst = hop.get("destination") or {}
+        names = {_norm(c.get("name")) for c in (hop.get("commodities") or []) if c.get("name")}
+        label = _commodity_label(hop)
+        steps.append({
+            "kind": "buy", "hop": i, "commodities": names,
+            "system": src.get("system"), "station": src.get("station"),
+            "text": f"Buy {label}  @ {src.get('system')} / {src.get('station')}",
+        })
+        steps.append({
+            "kind": "fly", "hop": i, "commodities": set(),
+            "system": dst.get("system"), "station": dst.get("station"),
+            "text": f"Fly to {dst.get('system')} - dock at {dst.get('station')}",
+        })
+        steps.append({
+            "kind": "sell", "hop": i, "commodities": names,
+            "system": dst.get("system"), "station": dst.get("station"),
+            "text": f"Sell {label}  @ {dst.get('station')}",
+        })
+    return steps
+
+
 def build_cargo_grid(
     result: Any, current_hop: int | None = None, skipped: set[int] | None = None
 ) -> tuple[list[dict[str, Any]], list[int | None]]:

@@ -104,7 +104,7 @@ _CARGO_MENU: list[tuple[str, str]] = [
 # panel (EDDiscovery ZMQ panels have no native tabs). MODEBAR itself is always shown.
 _EXO_VIEW = ("DGV", "BODIES", "ORGANISMS", "HEADER", "DETAIL", "GENBAR", "TOOLBAR")
 _COLONY_VIEW = ("COLBAR", "COLGRID")
-_CARGO_VIEW = ("CARGOBAR", "CARGOGRID")
+_CARGO_VIEW = ("CARGOBAR", "CARGOGRID", "CARGOSTEPS")
 # The triage/body button bars are retired in favour of the grid right-click menus,
 # and the individual route/nav/diagnostics buttons are folded into the toolbar
 # dropdowns (ROUTEMENU/NAVMENU/DIAGMENU). Keep the controls defined (so button-state
@@ -171,6 +171,8 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self._cargo_hop = 0
         self._cargo_row_hops: list[int | None] = []
         self._cargo_skipped: set[int] = set()
+        self._cargo_steps: list[dict[str, Any]] = []
+        self._cargo_step = 0
         self._context_menus_registered = False
         self.mode = "exo"
         # Live telemetry state (populated from EDDiscovery edduievent/newtarget pushes).
@@ -646,6 +648,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self._cargo_skipped = set()
         self.set_mode("cargo")
         self._render_cargo()
+        self._arm_cargo_steps()
         first_source = (hops[0].get("source") or {}).get("system") or route.get("start_system")
         copied = self._copy_system(first_source)
         self.client.ui_set(
@@ -942,6 +945,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                 )
             self.set_mode("cargo")
             self._render_cargo()
+            self._arm_cargo_steps()
 
     # --- live trade-run tracking --------------------------------------------
     def _copy_system(self, system: Any) -> bool:
@@ -971,52 +975,81 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
     def _norm(value: Any) -> str:
         return str(value or "").strip().casefold()
 
+    def _arm_cargo_steps(self) -> None:
+        import cargo as cargo_mod
+
+        self._cargo_steps = cargo_mod.build_steps(self._cargo_route) if self._cargo_route else []
+        self._cargo_step = 0
+        self._render_steps()
+
+    def _render_steps(self) -> None:
+        steps = self._cargo_steps
+        if not steps:
+            self.client.ui_set_escape("CARGOSTEPS", "Generate or load a cargo route to start the run checklist.")
+            return
+        total = len(steps)
+        cur = min(self._cargo_step, total)
+        start = max(0, cur - 2)
+        end = min(total, start + 12)
+        lines = [f"RUN CHECKLIST - step {min(cur + 1, total)} of {total}"]
+        for i in range(start, end):
+            mark = "[x]" if i < cur else (">>>" if i == cur else "[ ]")
+            lines.append(f"{mark} {steps[i]['text']}")
+        if cur >= total:
+            lines.append("")
+            lines.append("Loop complete - buy the first commodity again to run it once more.")
+        self.client.ui_set_escape("CARGOSTEPS", "\r\n".join(lines))
+
+    def _find_step(self, kind: str, commodity: str | None = None,
+                   system: str | None = None, station: str | None = None) -> int | None:
+        for i in range(self._cargo_step, len(self._cargo_steps)):
+            step = self._cargo_steps[i]
+            if step["kind"] != kind:
+                continue
+            if commodity is not None and commodity in step["commodities"]:
+                return i
+            if station and self._norm(step.get("station")) == station:
+                return i
+            if system and self._norm(step.get("system")) == system:
+                return i
+        return None
+
+    def _copy_next_fly(self) -> None:
+        for step in self._cargo_steps[self._cargo_step:]:
+            if step["kind"] == "fly" and step.get("system"):
+                if self._copy_system(step["system"]):
+                    self.client.ui_set("CARGOSTATUS", f"Next: fly to {step['system']}  (copied to clipboard)")
+                return
+
     def _cargo_track(self, entry: dict[str, Any]) -> None:
-        """Drive the trade run from live journal events: buy -> copy next system."""
-        route = self._cargo_route
-        hops = (route or {}).get("hops") or []
-        if not hops:
+        """Drive the run checklist from live journal events and copy the next system."""
+        if not self._cargo_steps:
             return
         event = entry.get("event")
+        matched = None
         if event == "MarketBuy":
-            bought = self._norm(entry.get("Type_Localised") or entry.get("Type"))
-            if not bought:
-                return
-            # Find the hop that buys this commodity (search from the current hop, wrapping),
-            # so buying the right good anywhere in the loop advances the run.
-            count = len(hops)
-            match = None
-            for step in range(count):
-                idx = (self._cargo_hop + step) % count
-                if idx in self._cargo_skipped:
-                    continue
-                if any(self._norm(c.get("name")) == bought for c in (hops[idx].get("commodities") or [])):
-                    match = idx
-                    break
-            if match is None:
-                return
-            self._cargo_hop = match
-            destination = hops[match].get("destination") or {}
-            dest_system = destination.get("system")
-            dest_station = destination.get("station")
-            copied = self._copy_system(dest_system)
-            commodity = entry.get("Type_Localised") or entry.get("Type")
-            self.client.ui_set(
-                "CARGOSTATUS",
-                f"Hop {match + 1}/{count}: bought {commodity}  ->  sell at "
-                f"{dest_system} / {dest_station}" + ("  (copied)" if copied else ""),
-            )
-            self._render_cargo()
+            commodity = self._norm(entry.get("Type_Localised") or entry.get("Type"))
+            matched = self._find_step("buy", commodity=commodity)
+            if matched is not None:
+                self._cargo_step = matched + 1
+                self._copy_next_fly()
         elif event == "Docked":
-            system = entry.get("StarSystem")
-            hop = hops[self._cargo_hop] if self._cargo_hop < len(hops) else None
-            destination = (hop or {}).get("destination") or {}
-            if system and self._norm(system) == self._norm(destination.get("system")):
-                commodity = (hops[self._cargo_hop].get("commodities") or [{}])[0].get("name", "cargo")
-                self.client.ui_set(
-                    "CARGOSTATUS",
-                    f"Arrived {entry.get('StationName')}: sell {commodity}, then buy the next hop",
-                )
+            matched = self._find_step(
+                "fly", system=self._norm(entry.get("StarSystem")), station=self._norm(entry.get("StationName"))
+            )
+            if matched is not None:
+                self._cargo_step = matched + 1
+        elif event == "MarketSell":
+            commodity = self._norm(entry.get("Type_Localised") or entry.get("Type"))
+            matched = self._find_step("sell", commodity=commodity)
+            if matched is not None:
+                self._cargo_step = matched + 1
+        if matched is not None:
+            step = self._cargo_steps[min(self._cargo_step, len(self._cargo_steps) - 1)]
+            hop = step.get("hop", 0)
+            self._cargo_hop = hop if isinstance(hop, int) and hop >= 0 else 0
+            self._render_cargo()
+            self._render_steps()
 
     def handle_message(self, message: dict[str, Any]) -> bool:
         response_type = message.get("responsetype")

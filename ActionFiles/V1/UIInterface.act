@@ -4,7 +4,7 @@ ENABLED True
 
 INSTALL LongDescription="RouteOps navigation-first EDDiscovery operations panel UI"
 INSTALL ShortDescription="RouteOps UI"
-INSTALL Version=0.7.10.0
+INSTALL Version=0.7.11.0
 INSTALL MinEDVersion=19.0.0.0
 INSTALL Location=.
 
@@ -28,6 +28,7 @@ DialogEntry controls,FIRSTS_RADAR,Button,"Firsts Radar",0,0,100,28,"Open the sta
 DialogEntry controls,BODIES,dgv,"",0,0,1,172,"Selected system body manifest","",Bottom,"","",0;(text,"Order",48,Numeric),(text,"Body",210),(text,"Distance",82),(text,"Bio",45),(text,"Targets",120),(text,"Scans",62),(text,"Active Value",105),(text,"State",92)
 DialogEntry controls,ORGANISMS,dgv,"",0,0,1,190,"Selected body species triage","",Bottom,"","",0;(text,"Decision",68),(text,"Certainty",88),(text,"Species",210),(text,"Variant",145),(text,"Scans",55),(text,"Value",105),(text,"Difficulty",82),(text,"Source",85)
 DialogEntry controls,DETAIL,richtextbox,"",0,0,1,220,"Selected body, route library, and runtime health details","",Bottom,"",""
+DialogEntry controls,CARGOSTEPS,richtextbox,"",0,0,1,170,"Cargo run checklist - ticks as you buy, dock and sell","",Bottom,"",""
 
 DialogEntry controls,TRIAGEBAR,flowpanel,"",0,0,1,34,"Species triage controls","",Bottom,"","",Horizontal
 DialogEntry controls,TASKDONE,Button,"Complete Species",0,0,102,28,"Complete the selected species on the selected body","TRIAGEBAR"
@@ -119,7 +120,7 @@ DialogEntry controls,CARGOSTATUS,label,"Start system auto-fills. Leave station b
 DialogEntry controls,HEADER,richtextbox,"",0,0,1,96,"Navigation summary","",Top,"",""
 
 DialogControl UC, AddRange controls
-DialogControl UC, setescape HEADER="RouteOps v0.7.10 starting...\r\nLoading navigation, route state, route library, and runtime health."
+DialogControl UC, setescape HEADER="RouteOps v0.7.11 starting...\r\nLoading navigation, route state, route library, and runtime health."
 DialogControl UC, setescape DETAIL="Use Route Library to inspect recent routes or Health to inspect the portable installation."
 
 END PROGRAM
