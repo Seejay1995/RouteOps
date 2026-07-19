@@ -59,6 +59,38 @@ def _commodity_label(hop: dict[str, Any]) -> str:
     return " + ".join(parts) or "cargo"
 
 
+def build_stops(result: Any) -> list[dict[str, Any]]:
+    """Station-by-station checklist model: one entry per station you dock at, each with
+    what to SELL (cargo carried in), what to BUY (cargo out), and where to FLY next."""
+    hops = _hops(result)
+    stops: list[dict[str, Any]] = []
+    n = len(hops)
+    for k in range(n):
+        hop = hops[k]
+        src = hop.get("source") or {}
+        dst = hop.get("destination") or {}
+        prev = hops[k - 1] if k > 0 else None
+        stops.append({
+            "system": src.get("system"), "station": src.get("station"), "hop": k,
+            "sell": {_norm(c.get("name")) for c in (prev.get("commodities") or [])} if prev else set(),
+            "sell_label": _commodity_label(prev) if prev else "",
+            "buy": {_norm(c.get("name")) for c in (hop.get("commodities") or [])},
+            "buy_label": _commodity_label(hop),
+            "fly_system": dst.get("system"), "fly_station": dst.get("station"),
+        })
+    if hops:
+        last = hops[-1]
+        ldst = last.get("destination") or {}
+        stops.append({
+            "system": ldst.get("system"), "station": ldst.get("station"), "hop": n - 1,
+            "sell": {_norm(c.get("name")) for c in (last.get("commodities") or [])},
+            "sell_label": _commodity_label(last),
+            "buy": set(), "buy_label": "",
+            "fly_system": None, "fly_station": None,
+        })
+    return stops
+
+
 def build_steps(result: Any) -> list[dict[str, Any]]:
     """A flat Buy -> Fly -> Sell action list for the run checklist. Each step carries
     the hop index, the commodity name-set (normalised) and the system/station it

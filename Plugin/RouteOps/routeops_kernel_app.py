@@ -171,8 +171,10 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self._cargo_hop = 0
         self._cargo_row_hops: list[int | None] = []
         self._cargo_skipped: set[int] = set()
-        self._cargo_steps: list[dict[str, Any]] = []
-        self._cargo_step = 0
+        self._cargo_stops: list[dict[str, Any]] = []
+        self._cargo_stop = 0
+        self._cargo_sold = False
+        self._cargo_bought = False
         self._context_menus_registered = False
         self.mode = "exo"
         # Live telemetry state (populated from EDDiscovery edduievent/newtarget pushes).
@@ -983,76 +985,98 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
     def _arm_cargo_steps(self) -> None:
         import cargo as cargo_mod
 
-        self._cargo_steps = cargo_mod.build_steps(self._cargo_route) if self._cargo_route else []
-        self._cargo_step = 0
+        self._cargo_stops = cargo_mod.build_stops(self._cargo_route) if self._cargo_route else []
+        self._cargo_stop = 0
+        self._cargo_sold = False
+        self._cargo_bought = False
         self._render_steps()
 
     def _render_steps(self) -> None:
-        steps = self._cargo_steps
-        if not steps:
-            self.client.ui_set_escape("CARGOSTEPS", "Generate or load a cargo route to start the run checklist.")
+        """Show ONLY the current stop: what to sell, buy and where to fly next."""
+        stops = self._cargo_stops
+        if not stops:
+            self.client.ui_set_escape("CARGOSTEPS", "Generate or load a cargo route to start the stop-by-stop checklist.")
             return
-        total = len(steps)
-        cur = min(self._cargo_step, total)
-        start = max(0, cur - 2)
-        end = min(total, start + 12)
-        lines = [f"RUN CHECKLIST - step {min(cur + 1, total)} of {total}"]
-        for i in range(start, end):
-            mark = "[x]" if i < cur else (">>>" if i == cur else "[ ]")
-            lines.append(f"{mark} {steps[i]['text']}")
-        if cur >= total:
+        i = min(self._cargo_stop, len(stops) - 1)
+        s = stops[i]
+        lines = [f"STOP {i + 1} of {len(stops)}   {s.get('station')} / {s.get('system')}", ""]
+        if s["sell"]:
+            lines.append(f"{'[x]' if self._cargo_sold else '>>>'}  Sell {s['sell_label']}")
+        if s["buy"]:
+            done = self._cargo_bought
+            active = self._cargo_sold or not s["sell"]
+            lines.append(f"{'[x]' if done else ('>>>' if active else '[ ]')}  Buy {s['buy_label']}")
+        if s.get("fly_system"):
+            lines.append(f"[ ]  Fly to {s['fly_system']} / {s['fly_station']}   (copied to clipboard on buy)")
+        else:
+            lines.append("Final stop - sell here. (Loop routes: buy the first commodity again to repeat.)")
+        # small preview of the next stop
+        if i + 1 < len(stops):
+            nxt = stops[i + 1]
             lines.append("")
-            lines.append("Loop complete - buy the first commodity again to run it once more.")
+            lines.append(f"next: {nxt.get('station')} / {nxt.get('system')}")
         self.client.ui_set_escape("CARGOSTEPS", "\r\n".join(lines))
 
-    def _find_step(self, kind: str, commodity: str | None = None,
-                   system: str | None = None, station: str | None = None) -> int | None:
-        for i in range(self._cargo_step, len(self._cargo_steps)):
-            step = self._cargo_steps[i]
-            if step["kind"] != kind:
-                continue
-            if commodity is not None and commodity in step["commodities"]:
+    def _find_stop(self, *, station: str = "", system: str = "",
+                   sell: str = "", buy: str = "") -> int | None:
+        stops = self._cargo_stops
+        order = list(range(self._cargo_stop, len(stops))) + list(range(0, self._cargo_stop))
+        for i in order:
+            s = stops[i]
+            if station and self._norm(s.get("station")) == station:
                 return i
-            if station and self._norm(step.get("station")) == station:
+            if system and self._norm(s.get("system")) == system:
                 return i
-            if system and self._norm(step.get("system")) == system:
+            if sell and sell in s["sell"]:
+                return i
+            if buy and buy in s["buy"]:
                 return i
         return None
 
-    def _copy_next_fly(self) -> None:
-        for step in self._cargo_steps[self._cargo_step:]:
-            if step["kind"] == "fly" and step.get("system"):
-                if self._copy_system(step["system"]):
-                    self.client.ui_set("CARGOSTATUS", f"Next: fly to {step['system']}  (copied to clipboard)")
-                return
+    def _goto_stop(self, index: int) -> None:
+        self._cargo_stop = index
+        self._cargo_sold = False
+        self._cargo_bought = False
+        hop = self._cargo_stops[index].get("hop", 0)
+        self._cargo_hop = hop if isinstance(hop, int) and hop >= 0 else 0
 
     def _cargo_track(self, entry: dict[str, Any]) -> None:
-        """Drive the run checklist from live journal events and copy the next system."""
-        if not self._cargo_steps:
+        """Drive the per-stop checklist from live journal events."""
+        stops = self._cargo_stops
+        if not stops:
             return
         event = entry.get("event")
-        matched = None
-        if event == "MarketBuy":
-            commodity = self._norm(entry.get("Type_Localised") or entry.get("Type"))
-            matched = self._find_step("buy", commodity=commodity)
-            if matched is not None:
-                self._cargo_step = matched + 1
-                self._copy_next_fly()
-        elif event == "Docked":
-            matched = self._find_step(
-                "fly", system=self._norm(entry.get("StarSystem")), station=self._norm(entry.get("StationName"))
-            )
-            if matched is not None:
-                self._cargo_step = matched + 1
+        cur = min(self._cargo_stop, len(stops) - 1)
+        s = stops[cur]
+        changed = False
+        if event == "Docked":
+            idx = self._find_stop(station=self._norm(entry.get("StationName")), system=self._norm(entry.get("StarSystem")))
+            if idx is not None and idx != cur:
+                self._goto_stop(idx)
+                changed = True
         elif event == "MarketSell":
             commodity = self._norm(entry.get("Type_Localised") or entry.get("Type"))
-            matched = self._find_step("sell", commodity=commodity)
-            if matched is not None:
-                self._cargo_step = matched + 1
-        if matched is not None:
-            step = self._cargo_steps[min(self._cargo_step, len(self._cargo_steps) - 1)]
-            hop = step.get("hop", 0)
-            self._cargo_hop = hop if isinstance(hop, int) and hop >= 0 else 0
+            if commodity in s["sell"]:
+                self._cargo_sold = True
+                changed = True
+            else:
+                idx = self._find_stop(sell=commodity)
+                if idx is not None:
+                    self._goto_stop(idx)
+                    self._cargo_sold = True
+                    changed = True
+        elif event == "MarketBuy":
+            commodity = self._norm(entry.get("Type_Localised") or entry.get("Type"))
+            target = cur if commodity in s["buy"] else self._find_stop(buy=commodity)
+            if target is not None:
+                if target != cur:
+                    self._goto_stop(target)
+                self._cargo_bought = True
+                fly = self._cargo_stops[target].get("fly_system")
+                if fly and self._copy_system(fly):
+                    self.client.ui_set("CARGOSTATUS", f"Next: fly to {fly}  (copied to clipboard)")
+                changed = True
+        if changed:
             self._render_cargo()
             self._render_steps()
 

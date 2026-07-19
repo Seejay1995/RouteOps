@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.13
+
+- Cargo: the run checklist is now stop-by-stop instead of one big block. It shows only the station you are at - Sell / Buy / Fly - ticking each as the journal reports it (MarketSell, MarketBuy, Docked), advances to the next station when you dock, and previews the next stop.
+
 ## 0.7.12
 
 - Cargo: routes now optimise to YOUR jump range. Previously max hop distance was hardcoded to 50 ly; there is now a Jump ly field, auto-filled from your ship's MaxJumpRange, passed to Spansh as max_hop_distance so hops fit your range (lower it to your laden range for one-jump hops).
