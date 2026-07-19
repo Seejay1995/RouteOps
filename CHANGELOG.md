@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.7
+
+- Cargo: added a Stations filter toggle (Any vs Space only) so you can exclude planetary/surface ports, like the Route Finder.
+- Cargo: added Save and Load - save a generated cargo route to reload later (survives EDD restarts) and reopen it via a file picker; loading re-arms live tracking and copies the first buy system. Routes are stored under the plugin's CargoRoutes folder.
+
 ## 0.7.6
 
 - Cargo: fixed hops showing only one commodity - Spansh often fills the hold with several commodities per hop, and all of them are now listed (each as its own row) so you buy the full load. Hold tonnage shown in the hop tooltip.

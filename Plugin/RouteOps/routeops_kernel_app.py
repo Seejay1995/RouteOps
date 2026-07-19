@@ -163,6 +163,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         self._cargo_status_shown: str = ""
         self._cargo_prefilled = False
         self._cargo_pad_large = True
+        self._cargo_planetary = True
         self._cargo_sys_prefill = ""
         # Live trade-run tracking: the generated route + which hop is in progress.
         self._cargo_route: dict[str, Any] | None = None
@@ -358,6 +359,18 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
             self.client.ui_set(
                 "CARGOPAD", "Pad: Large only" if self._cargo_pad_large else "Pad: Any pad"
             )
+            return
+        if control == "CARGOPLANET":
+            self._cargo_planetary = not self._cargo_planetary
+            self.client.ui_set(
+                "CARGOPLANET", "Stations: Any" if self._cargo_planetary else "Stations: Space only"
+            )
+            return
+        if control == "CARGO_SAVE":
+            self._cargo_save()
+            return
+        if control == "CARGO_LOAD":
+            self._cargo_load()
             return
         if control == "MODE_EXO":
             self.set_mode("exo")
@@ -579,6 +592,61 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                 self._cargo_skipped.add(hop_idx)
             self._render_cargo()
 
+    def _cargo_routes_dir(self) -> Path:
+        folder = Path(__file__).resolve().parent / "CargoRoutes"
+        folder.mkdir(parents=True, exist_ok=True)
+        return folder
+
+    def _cargo_save(self) -> None:
+        if not self._cargo_route:
+            self.client.ui_set("CARGOSTATUS", "Generate a cargo route first, then Save.")
+            return
+        import cargo as cargo_mod
+
+        folder = self._cargo_routes_dir()
+        hops = self._cargo_route.get("hops") or []
+        start = self._cargo_route.get("start_system") or "route"
+        profit = cargo_mod.total_profit(self._cargo_route)
+        stem = re.sub(r"[^A-Za-z0-9._-]+", "_", f"{start}_{len(hops)}hops_{profit // 1_000_000}M").strip("_")
+        path = folder / f"{(stem or 'cargo_route')[:80]}.json"
+        try:
+            path.write_text(json.dumps({"kind": "routeops-cargo", "route": self._cargo_route}, indent=2), encoding="utf-8")
+            self.client.ui_set("CARGOSTATUS", f"Saved: {path.name}  (in {folder})")
+        except OSError as exc:
+            self.client.ui_set("CARGOSTATUS", f"Save failed: {exc}")
+
+    def _cargo_load(self) -> None:
+        folder = self._cargo_routes_dir()
+        response = self.client.open_file_dialog(
+            str(folder), "Cargo routes|*.json|All files|*.*", "*.json"
+        )
+        if not (response and response.get("DialogResult") == "OK" and response.get("FileName")):
+            return
+        try:
+            data = json.loads(Path(str(response["FileName"])).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            self.client.ui_set("CARGOSTATUS", f"Load failed: {exc}")
+            return
+        route = data.get("route") if isinstance(data, dict) and data.get("kind") == "routeops-cargo" else data
+        hops = (route or {}).get("hops") if isinstance(route, dict) else None
+        if not hops:
+            self.client.ui_set("CARGOSTATUS", "That file is not a saved cargo route.")
+            return
+        import cargo as cargo_mod
+
+        self._cargo_route = route
+        self._cargo_hop = 0
+        self._cargo_skipped = set()
+        self.set_mode("cargo")
+        self._render_cargo()
+        first_source = (hops[0].get("source") or {}).get("system") or route.get("start_system")
+        copied = self._copy_system(first_source)
+        self.client.ui_set(
+            "CARGOSTATUS",
+            f"Loaded {len(hops)} hops, {cargo_mod.total_profit(route):,} CR - go to {first_source}"
+            + ("  (copied)" if copied else ""),
+        )
+
     # --- Spansh route generation (threaded) ---------------------------------
     def _start_spansh_generation(self) -> None:
         thread = self._spansh_thread
@@ -741,6 +809,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
         cargo = self._read_int("CARGOCARGO", 720)
         max_hops = self._read_int("CARGOHOPS", 5)
         large_pad_only = self._cargo_pad_large
+        planetary = self._cargo_planetary
         self._cargo_result = None
         self._cargo_error = None
         self._cargo_status = "Contacting Spansh..."
@@ -756,6 +825,7 @@ class KernelRouteOpsApplication(legacy.RouteOpsApplication):
                     cargo=cargo,
                     max_hops=max_hops,
                     large_pad_only=large_pad_only,
+                    allow_planetary=planetary,
                     on_progress=self._set_cargo_status,
                 )
                 self._cargo_result = route
